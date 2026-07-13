@@ -1,0 +1,6 @@
+{
+  "name": "Heart Connect",
+  "description": "A supportive community for people waiting for a heart transplant. Share experiences, find matches, and access AI counseling.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
