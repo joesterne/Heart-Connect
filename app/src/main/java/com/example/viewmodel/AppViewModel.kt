@@ -12,6 +12,7 @@ import com.example.data.repository.GeminiRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import com.example.data.repository.Content
 import com.example.data.repository.Part
@@ -52,6 +53,21 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _communityPosts = MutableStateFlow<List<com.example.data.model.CommunityPost>>(emptyList())
     val communityPosts: StateFlow<List<com.example.data.model.CommunityPost>> = _communityPosts.asStateFlow()
 
+    private val _qaInquiries = MutableStateFlow<List<com.example.data.model.QAInquiry>>(emptyList())
+    val qaInquiries: StateFlow<List<com.example.data.model.QAInquiry>> = _qaInquiries.asStateFlow()
+
+
+    private val _notificationEvent = kotlinx.coroutines.flow.MutableSharedFlow<String>()
+    val notificationEvent = _notificationEvent.asSharedFlow()
+
+    private val _educationalContent = MutableStateFlow<List<com.example.data.model.EducationalContent>>(emptyList())
+    val educationalContent: StateFlow<List<com.example.data.model.EducationalContent>> = _educationalContent.asStateFlow()
+
+    private val _savedPosts = MutableStateFlow<Set<String>>(emptySet())
+    val savedPosts: StateFlow<Set<String>> = _savedPosts.asStateFlow()
+
+    private val _savedEducationalContent = MutableStateFlow<Set<String>>(emptySet())
+    val savedEducationalContent: StateFlow<Set<String>> = _savedEducationalContent.asStateFlow()
 
     init {
         // Load saved profile or use default placeholder
@@ -61,8 +77,24 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val medicalHistory = sharedPrefs.getString("profile_medical", "Cardiomyopathy, waiting 6 months") ?: "Cardiomyopathy, waiting 6 months"
         val aboutMe = sharedPrefs.getString("profile_about", "Looking for others going through the same thing.") ?: "Looking for others going through the same thing."
         val journeyPhase = sharedPrefs.getString("profile_journey", "Pre-transplant") ?: "Pre-transplant"
+        val isAvailableForMentorship = sharedPrefs.getBoolean("profile_mentorship", false)
+        val dailyLogsStr = sharedPrefs.getString("profile_daily_logs", "") ?: ""
+        val dailyLogs = if (dailyLogsStr.isNotBlank()) {
+            dailyLogsStr.split(";;;").mapNotNull { logStr ->
+                val parts = logStr.split("|||")
+                if (parts.size == 5) {
+                    com.example.data.model.DailyLog(
+                        id = parts[0],
+                        timestamp = parts[1].toLongOrNull() ?: 0L,
+                        mood = parts[2].toIntOrNull() ?: 3,
+                        symptoms = parts[3],
+                        notes = parts[4]
+                    )
+                } else null
+            }
+        } else emptyList()
 
-        _userProfile.value = Profile(id = "me", name = name, age = age, location = location, medicalHistory = medicalHistory, aboutMe = aboutMe, journeyPhase = journeyPhase)
+        _userProfile.value = Profile(id = "me", name = name, age = age, location = location, medicalHistory = medicalHistory, aboutMe = aboutMe, journeyPhase = journeyPhase, isAvailableForMentorship = isAvailableForMentorship, dailyLogs = dailyLogs)
         
         // Initial secure seed messages to make the interface feel active
         _privateMessages.value = mapOf(
@@ -93,6 +125,30 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     com.example.data.model.CommunityPost("1", "1", "Sarah", "Pre-transplant", "Just got my 3-month checkup, everything looks stable!", System.currentTimeMillis() - 86400000),
                     com.example.data.model.CommunityPost("2", "2", "Michael", "Post-transplant recovery", "Has anyone tried the new physical therapy routine recommended by Dr. Aris?", System.currentTimeMillis() - 172800000)
                 )
+                _qaInquiries.value = listOf(
+                    com.example.data.model.QAInquiry(
+                        id = "qa_1",
+                        authorId = "1",
+                        authorName = "Sarah",
+                        question = "What are the common side effects of the immunosuppressants initially?",
+                        timestamp = System.currentTimeMillis() - 86400000,
+                        answers = listOf(
+                            com.example.data.model.QAAnswer(
+                                id = "ans_1",
+                                authorId = "2",
+                                authorName = "Michael",
+                                content = "I experienced some mild tremors and headaches, but they faded after a few weeks as my body adjusted.",
+                                timestamp = System.currentTimeMillis() - 80000000,
+                                isVerified = true
+                            )
+                        )
+                    )
+                )
+                _educationalContent.value = listOf(
+                    com.example.data.model.EducationalContent("1", "Understanding the Waitlist", "A guide to how the transplant waitlist works and how to prepare.", "Article", "5 min read"),
+                    com.example.data.model.EducationalContent("2", "Nutrition Post-Transplant", "Key dietary changes to support your new organ.", "Video", "12 min watch"),
+                    com.example.data.model.EducationalContent("3", "Mental Health on the Journey", "Tips for managing anxiety and staying positive.", "Article", "8 min read")
+                )
             }
         }
     }
@@ -117,10 +173,62 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 // Ignore fallback for mock
             }
+            
+            // Simulate someone commenting on the user's shared experience after a short delay
+            kotlinx.coroutines.delay(5000)
+            _notificationEvent.emit("New comment on your post from a community member!")
         }
     }
 
-    fun saveProfile(name: String, age: Int, location: String, medicalHistory: String, aboutMe: String, journeyPhase: String) {
+    fun createQAInquiry(question: String) {
+        val currentUser = _userProfile.value ?: return
+        val newInquiry = com.example.data.model.QAInquiry(
+            id = "qa_${System.currentTimeMillis()}",
+            authorId = currentUser.id,
+            authorName = currentUser.name,
+            question = question,
+            timestamp = System.currentTimeMillis(),
+            answers = emptyList()
+        )
+        val currentInquiries = _qaInquiries.value.toMutableList()
+        currentInquiries.add(0, newInquiry)
+        _qaInquiries.value = currentInquiries
+    }
+
+    fun answerQAInquiry(inquiryId: String, answerContent: String) {
+        val currentUser = _userProfile.value ?: return
+        val newAnswer = com.example.data.model.QAAnswer(
+            id = "ans_${System.currentTimeMillis()}",
+            authorId = currentUser.id,
+            authorName = currentUser.name,
+            content = answerContent,
+            timestamp = System.currentTimeMillis()
+        )
+        val currentInquiries = _qaInquiries.value.toMutableList()
+        val index = currentInquiries.indexOfFirst { it.id == inquiryId }
+        if (index != -1) {
+            val inquiry = currentInquiries[index]
+            val newAnswers = inquiry.answers.toMutableList().apply { add(newAnswer) }
+            currentInquiries[index] = inquiry.copy(answers = newAnswers)
+            _qaInquiries.value = currentInquiries
+        }
+    }
+
+    fun verifyQAAnswer(inquiryId: String, answerId: String) {
+        val currentInquiries = _qaInquiries.value.toMutableList()
+        val index = currentInquiries.indexOfFirst { it.id == inquiryId }
+        if (index != -1) {
+            val inquiry = currentInquiries[index]
+            val newAnswers = inquiry.answers.map {
+                if (it.id == answerId) it.copy(isVerified = true) else it
+            }
+            currentInquiries[index] = inquiry.copy(answers = newAnswers)
+            _qaInquiries.value = currentInquiries
+        }
+    }
+
+    fun saveProfile(name: String, age: Int, location: String, medicalHistory: String, aboutMe: String, journeyPhase: String, isAvailableForMentorship: Boolean) {
+        val currentLogs = _userProfile.value?.dailyLogs ?: emptyList()
         sharedPrefs.edit().apply {
             putString("profile_name", name)
             putInt("profile_age", age)
@@ -128,9 +236,35 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             putString("profile_medical", medicalHistory)
             putString("profile_about", aboutMe)
             putString("profile_journey", journeyPhase)
+            putBoolean("profile_mentorship", isAvailableForMentorship)
             apply()
         }
-        _userProfile.value = Profile(id = "me", name = name, age = age, location = location, medicalHistory = medicalHistory, aboutMe = aboutMe, journeyPhase = journeyPhase)
+        _userProfile.value = Profile(id = "me", name = name, age = age, location = location, medicalHistory = medicalHistory, aboutMe = aboutMe, journeyPhase = journeyPhase, isAvailableForMentorship = isAvailableForMentorship, dailyLogs = currentLogs)
+        
+        viewModelScope.launch {
+            // Simulate finding a new match after updating the profile
+            kotlinx.coroutines.delay(3000)
+            _notificationEvent.emit("A new peer match was found based on your updated profile!")
+        }
+    }
+
+    fun addDailyLog(mood: Int, symptoms: String, notes: String) {
+        val currentProfile = _userProfile.value ?: return
+        val newLog = com.example.data.model.DailyLog(
+            id = "log_${System.currentTimeMillis()}",
+            timestamp = System.currentTimeMillis(),
+            mood = mood,
+            symptoms = symptoms.replace("|||", "").replace(";;;", ""),
+            notes = notes.replace("|||", "").replace(";;;", "")
+        )
+        val newLogs = currentProfile.dailyLogs.toMutableList().apply { add(0, newLog) }
+        
+        val logsStr = newLogs.joinToString(";;;") { log ->
+            "${log.id}|||${log.timestamp}|||${log.mood}|||${log.symptoms}|||${log.notes}"
+        }
+        
+        sharedPrefs.edit().putString("profile_daily_logs", logsStr).apply()
+        _userProfile.value = currentProfile.copy(dailyLogs = newLogs)
     }
 
     fun sendMessageToCounselor(message: String) {
@@ -225,5 +359,25 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
             _isSendingPrivateMessage.value = false
         }
+    }
+
+    fun toggleSavedPost(postId: String) {
+        val current = _savedPosts.value.toMutableSet()
+        if (current.contains(postId)) {
+            current.remove(postId)
+        } else {
+            current.add(postId)
+        }
+        _savedPosts.value = current
+    }
+
+    fun toggleSavedEducationalContent(contentId: String) {
+        val current = _savedEducationalContent.value.toMutableSet()
+        if (current.contains(contentId)) {
+            current.remove(contentId)
+        } else {
+            current.add(contentId)
+        }
+        _savedEducationalContent.value = current
     }
 }

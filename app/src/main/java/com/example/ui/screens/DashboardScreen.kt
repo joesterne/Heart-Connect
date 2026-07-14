@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Lock
@@ -35,6 +36,8 @@ fun DashboardScreen(
     onNavigateToCounseling: () -> Unit,
     onNavigateToCommunity: () -> Unit,
     onNavigateToProfile: () -> Unit,
+    onNavigateToEducation: () -> Unit,
+    onNavigateToFavorites: () -> Unit,
     onNavigateToPrivateChat: (String) -> Unit
 ) {
     val profiles by viewModel.profiles.collectAsState()
@@ -127,18 +130,40 @@ fun DashboardScreen(
                     ) {
                         Icon(Icons.Default.Group, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Groups & Matches")
+                        Text("Community")
                     }
                     Button(
-                        onClick = onNavigateToCounseling,
+                        onClick = onNavigateToEducation,
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
                         shape = RoundedCornerShape(24.dp)
                     ) {
-                        Icon(Icons.Default.Favorite, contentDescription = null)
+                        Icon(Icons.Default.MedicalServices, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("AI Support")
+                        Text("Education")
                     }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = onNavigateToCounseling,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                    shape = RoundedCornerShape(24.dp)
+                ) {
+                    Icon(Icons.Default.Favorite, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("AI Support Counseling")
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = onNavigateToFavorites,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurfaceVariant),
+                    shape = RoundedCornerShape(24.dp)
+                ) {
+                    Icon(Icons.Default.Bookmark, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Saved Favorites")
                 }
             }
 
