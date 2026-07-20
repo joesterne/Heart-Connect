@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.EnhancedEncryption
@@ -59,8 +60,9 @@ fun PrivateChatScreen(viewModel: AppViewModel, peerId: String, onBack: () -> Uni
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    val openDrawer = com.example.ui.navigation.LocalOpenDrawer.current
+                    IconButton(onClick = openDrawer) {
+                        Icon(Icons.Default.Menu, contentDescription = "Menu")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -131,7 +133,7 @@ fun PrivateChatScreen(viewModel: AppViewModel, peerId: String, onBack: () -> Uni
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(messages) { msg ->
+                    items(items = messages, key = { it.id }) { msg ->
                         SecureMessageBubble(message = msg, isMe = msg.senderId == "me")
                     }
                     if (isSending) {

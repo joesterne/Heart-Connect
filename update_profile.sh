@@ -1,0 +1,1 @@
+sed -i '/DailyTrackerSection(viewModel = viewModel, userProfile = userProfile)/i \                if (!userProfile?.badges.isNullOrEmpty()) {\n                    BadgesSection(badges = userProfile!!.badges)\n                    Spacer(modifier = Modifier.height(16.dp))\n                }\n' app/src/main/java/com/example/ui/screens/ProfileScreen.kt

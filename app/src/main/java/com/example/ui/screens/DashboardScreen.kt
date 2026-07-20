@@ -8,13 +8,21 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material.icons.filled.VolunteerActivism
 import androidx.compose.material.icons.filled.MedicalServices
+import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,7 +34,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.data.model.Profile
-import com.example.data.model.SupportGroup
 import com.example.viewmodel.AppViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,17 +45,25 @@ fun DashboardScreen(
     onNavigateToProfile: () -> Unit,
     onNavigateToEducation: () -> Unit,
     onNavigateToFavorites: () -> Unit,
+    onNavigateToMetrics: () -> Unit,
     onNavigateToPrivateChat: (String) -> Unit
 ) {
     val profiles by viewModel.profiles.collectAsState()
     val userProfile by viewModel.userProfile.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
     val isSearching by viewModel.isSearching.collectAsState()
+    val recommendedMentors by viewModel.recommendedMentors.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
             TopAppBar(
+                navigationIcon = {
+                    val openDrawer = com.example.ui.navigation.LocalOpenDrawer.current
+                    IconButton(onClick = openDrawer) {
+                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                    }
+                },
                 title = { Text("Heart Connect", fontWeight = FontWeight.Bold) },
                 actions = {
                     IconButton(onClick = onNavigateToProfile) {
@@ -112,49 +127,67 @@ fun DashboardScreen(
                             )
                             Spacer(Modifier.width(16.dp))
                             Column {
-                                Text("${myProfile.name} (Me)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                                Text("${myProfile.age} yrs • ${myProfile.location}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-                                Text(myProfile.medicalHistory, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
+                                Text(myProfile.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                Text("${myProfile.age} yrs • ${myProfile.location}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(myProfile.medicalHistory, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
                 }
             }
-            
+
             item {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Button(
-                        onClick = onNavigateToCommunity,
-                        modifier = Modifier.weight(1f),
+                        onClick = onNavigateToCounseling,
+                        modifier = Modifier.weight(1f).height(80.dp),
                         shape = RoundedCornerShape(24.dp)
                     ) {
-                        Icon(Icons.Default.Group, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Community")
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null)
+                            Spacer(Modifier.height(4.dp))
+                            Text("AI Guide", style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                    Button(
+                        onClick = onNavigateToCommunity,
+                        modifier = Modifier.weight(1f).height(80.dp),
+                        shape = RoundedCornerShape(24.dp)
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.Group, contentDescription = null)
+                            Spacer(Modifier.height(4.dp))
+                            Text("Community", style = MaterialTheme.typography.labelMedium)
+                        }
                     }
                     Button(
                         onClick = onNavigateToEducation,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
+                        modifier = Modifier.weight(1f).height(80.dp),
                         shape = RoundedCornerShape(24.dp)
                     ) {
-                        Icon(Icons.Default.MedicalServices, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Education")
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null)
+                            Spacer(Modifier.height(4.dp))
+                            Text("Education", style = MaterialTheme.typography.labelMedium)
+                        }
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            
+            item {
                 Button(
-                    onClick = onNavigateToCounseling,
+                    onClick = onNavigateToMetrics,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer),
                     shape = RoundedCornerShape(24.dp)
                 ) {
-                    Icon(Icons.Default.Favorite, contentDescription = null)
+                    Icon(Icons.Default.MonitorHeart, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
-                    Text("AI Support Counseling")
+                    Text("Health Metrics Dashboard")
                 }
-                Spacer(modifier = Modifier.height(8.dp))
+            }
+            item {
                 Button(
                     onClick = onNavigateToFavorites,
                     modifier = Modifier.fillMaxWidth(),
@@ -203,10 +236,40 @@ fun DashboardScreen(
             }
 
             item {
+                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.MedicalServices, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Essential Resources & Contacts", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                        }
+                        Spacer(Modifier.height(16.dp))
+                        ResourceContactItem(title = "UNOS Patient Services", info = "1-888-894-6361", desc = "Information about transplant and donation.")
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.1f))
+                        ResourceContactItem(title = "American Heart Association", info = "1-800-AHA-USA-1", desc = "Support groups and cardiovascular resources.")
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.1f))
+                        ResourceContactItem(title = "Transplant Recipients International Org.", info = "info@trioweb.org", desc = "Peer support and advocacy.")
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+            }
+
+            if (recommendedMentors.isNotEmpty()) {
+                item {
+                    Text("Recommended Mentors", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text("Matched based on shared experiences", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                items(items = recommendedMentors, key = { "mentor_${it.id}" }) { profile ->
+                    ProfileCard(profile = profile, onClick = { onNavigateToPrivateChat(profile.id) })
+                }
+                item { Spacer(Modifier.height(8.dp)) }
+            }
+
+            item {
                 Text("Recently Active Members", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             }
 
-            items(profiles) { profile ->
+            items(items = profiles, key = { it.id }) { profile ->
                 ProfileCard(profile = profile, onClick = { onNavigateToPrivateChat(profile.id) })
             }
         }
@@ -237,6 +300,21 @@ fun ProfileCard(profile: Profile, onClick: () -> Unit) {
                 Text(profile.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Text("${profile.age} yrs • ${profile.location}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(profile.medicalHistory, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (profile.badges.isNotEmpty()) {
+                    Spacer(Modifier.height(4.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        profile.badges.forEach { badge ->
+                            val icon = when (badge.iconResName) {
+                                "VolunteerActivism" -> Icons.Default.VolunteerActivism
+                                "Favorite" -> Icons.Default.Favorite
+                                "LocalFireDepartment" -> Icons.Default.LocalFireDepartment
+                                "VerifiedUser" -> Icons.Default.VerifiedUser
+                                else -> Icons.Default.Star
+                            }
+                            Icon(icon, contentDescription = badge.name, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                        }
+                    }
+                }
             }
             Spacer(Modifier.width(8.dp))
             Icon(
@@ -246,5 +324,14 @@ fun ProfileCard(profile: Profile, onClick: () -> Unit) {
                 modifier = Modifier.size(20.dp)
             )
         }
+    }
+}
+
+@Composable
+fun ResourceContactItem(title: String, info: String, desc: String) {
+    Column {
+        Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+        Text(info, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
+        Text(desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f))
     }
 }

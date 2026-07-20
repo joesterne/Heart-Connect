@@ -72,6 +72,8 @@ googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.W
 // Some unused dependencies are commented out below instead of being removed.
 // This makes it easy to add them back in the future if needed.
 dependencies {
+    implementation(libs.vico.compose)
+    implementation(libs.vico.compose.m3)
   implementation(platform(libs.androidx.compose.bom))
   implementation(platform(libs.firebase.bom))
   // implementation(libs.accompanist.permissions)
@@ -118,6 +120,7 @@ dependencies {
   implementation(libs.play.services.location)
   implementation(libs.maps.compose)
   implementation(libs.play.services.maps)
+  implementation(libs.androidx.security.crypto)
   implementation(libs.retrofit)
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)

@@ -1,0 +1,3 @@
+sed -i 's/Icons.Default.Chat/Icons.AutoMirrored.Filled.Chat/g' app/src/main/java/com/example/ui/navigation/AppNavigation.kt app/src/main/java/com/example/ui/screens/DashboardScreen.kt
+sed -i 's/Icons.Default.MenuBook/Icons.AutoMirrored.Filled.MenuBook/g' app/src/main/java/com/example/ui/navigation/AppNavigation.kt app/src/main/java/com/example/ui/screens/DashboardScreen.kt
+sed -i 's/Modifier.fillMaxWidth().menuAnchor()/Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable)/g' app/src/main/java/com/example/ui/screens/CommunityScreen.kt app/src/main/java/com/example/ui/screens/ProfileScreen.kt

@@ -13,14 +13,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
 import com.example.data.repository.Content
 import com.example.data.repository.Part
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val firestoreRepository = FirestoreRepository(application)
     private val geminiRepository = GeminiRepository()
-    private val sharedPrefs = application.getSharedPreferences("heart_connect_prefs", Context.MODE_PRIVATE)
+    private val masterKey = MasterKey.Builder(application).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(); private val sharedPrefs = EncryptedSharedPreferences.create(application, "heart_connect_prefs_secure", masterKey, EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV, EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM)
 
     private val _userProfile = MutableStateFlow<Profile?>(null)
     val userProfile: StateFlow<Profile?> = _userProfile.asStateFlow()
@@ -34,6 +39,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _chatHistory = MutableStateFlow<List<Content>>(emptyList())
     val chatHistory: StateFlow<List<Content>> = _chatHistory.asStateFlow()
     
+    private val _isGlobalLoading = MutableStateFlow(true)
+    val isGlobalLoading = _isGlobalLoading.asStateFlow()
+
     private val _isCounselingLoading = MutableStateFlow(false)
     val isCounselingLoading = _isCounselingLoading.asStateFlow()
 
@@ -59,6 +67,40 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _notificationEvent = kotlinx.coroutines.flow.MutableSharedFlow<String>()
     val notificationEvent = _notificationEvent.asSharedFlow()
+
+    private val _isHighContrast = MutableStateFlow(sharedPrefs.getBoolean("high_contrast", false))
+    val isHighContrast = _isHighContrast.asStateFlow()
+
+    private val _isLargeFont = MutableStateFlow(sharedPrefs.getBoolean("large_font", false))
+    val isLargeFont = _isLargeFont.asStateFlow()
+
+    private val _isDarkMode = MutableStateFlow<Boolean?>(
+        if (sharedPrefs.contains("dark_mode")) sharedPrefs.getBoolean("dark_mode", false) else null
+    )
+    val isDarkMode: StateFlow<Boolean?> = _isDarkMode.asStateFlow()
+    val recommendedMentors: StateFlow<List<Profile>> = combine(_userProfile, _profiles) { user, allProfiles ->
+        if (user == null || user.isAvailableForMentorship) return@combine emptyList()
+        val userKeywords = user.medicalHistory.split(Regex("\\W+")).map { it.lowercase() }.filter { it.length > 3 }.toSet()
+        allProfiles.filter { it.isAvailableForMentorship && it.id != user.id }.sortedByDescending { mentor ->
+            val mentorKeywords = mentor.medicalHistory.split(Regex("\\W+")).map { it.lowercase() }.filter { it.length > 3 }.toSet()
+            userKeywords.intersect(mentorKeywords).size
+        }.take(3)
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    fun toggleHighContrast(enabled: Boolean) {
+        sharedPrefs.edit().putBoolean("high_contrast", enabled).apply()
+        _isHighContrast.value = enabled
+    }
+
+    fun toggleLargeFont(enabled: Boolean) {
+        sharedPrefs.edit().putBoolean("large_font", enabled).apply()
+        _isLargeFont.value = enabled
+    }
+
+    fun toggleDarkMode(enabled: Boolean) {
+        sharedPrefs.edit().putBoolean("dark_mode", enabled).apply()
+        _isDarkMode.value = enabled
+    }
 
     private val _educationalContent = MutableStateFlow<List<com.example.data.model.EducationalContent>>(emptyList())
     val educationalContent: StateFlow<List<com.example.data.model.EducationalContent>> = _educationalContent.asStateFlow()
@@ -94,7 +136,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             }
         } else emptyList()
 
-        _userProfile.value = Profile(id = "me", name = name, age = age, location = location, medicalHistory = medicalHistory, aboutMe = aboutMe, journeyPhase = journeyPhase, isAvailableForMentorship = isAvailableForMentorship, dailyLogs = dailyLogs)
+        _userProfile.value = Profile(id = "me", name = name, age = age, location = location, medicalHistory = medicalHistory, aboutMe = aboutMe, journeyPhase = journeyPhase, isAvailableForMentorship = isAvailableForMentorship, dailyLogs = dailyLogs, badges = getBadgesForProfile(isAvailableForMentorship, dailyLogs.size, journeyPhase))
         
         // Initial secure seed messages to make the interface feel active
         _privateMessages.value = mapOf(
@@ -107,6 +149,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         )
 
         viewModelScope.launch {
+            _isGlobalLoading.value = true
             try {
                 _profiles.value = firestoreRepository.getProfiles()
                 _supportGroups.value = firestoreRepository.getGroups()
@@ -114,8 +157,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 // Mock data fallback if firebase fails due to missing google-services.json
                 _profiles.value = listOf(
-                    Profile(id = "1", name = "Sarah", age = 42, location = "Portland, OR", medicalHistory = "Congenital heart defect, listed 2 months ago.", journeyPhase = "Pre-transplant"),
-                    Profile(id = "2", name = "Michael", age = 29, location = "San Francisco, CA", medicalHistory = "Heart failure, listed 1 year ago.", journeyPhase = "Post-transplant recovery")
+                    Profile(id = "1", name = "Sarah", age = 42, location = "Portland, OR", medicalHistory = "Congenital heart defect, listed 2 months ago.", journeyPhase = "Pre-transplant", badges = getBadgesForProfile(false, 3, "Pre-transplant")),
+                    Profile(id = "2", name = "Michael", age = 29, location = "San Francisco, CA", medicalHistory = "Heart failure, listed 1 year ago.", journeyPhase = "Post-transplant recovery", isAvailableForMentorship = true, badges = getBadgesForProfile(true, 10, "Post-transplant recovery"))
                 )
                 _supportGroups.value = listOf(
                     SupportGroup("1", "General Support", "A safe place for all waitlist patients.", "Dr. Smith", emptyList()),
@@ -144,11 +187,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         )
                     )
                 )
+                kotlinx.coroutines.delay(1000)
                 _educationalContent.value = listOf(
                     com.example.data.model.EducationalContent("1", "Understanding the Waitlist", "A guide to how the transplant waitlist works and how to prepare.", "Article", "5 min read"),
                     com.example.data.model.EducationalContent("2", "Nutrition Post-Transplant", "Key dietary changes to support your new organ.", "Video", "12 min watch"),
                     com.example.data.model.EducationalContent("3", "Mental Health on the Journey", "Tips for managing anxiety and staying positive.", "Article", "8 min read")
                 )
+            } finally {
+                _isGlobalLoading.value = false
             }
         }
     }
@@ -168,6 +214,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _communityPosts.value = currentPosts
         
         viewModelScope.launch {
+
             try {
                 firestoreRepository.createPost(newPost)
             } catch (e: Exception) {
@@ -227,6 +274,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private fun getBadgesForProfile(isMentorship: Boolean, logsCount: Int, phase: String): List<com.example.data.model.Badge> {
+        val badges = mutableListOf<com.example.data.model.Badge>()
+        if (isMentorship) {
+            badges.add(com.example.data.model.Badge("1", "Active Mentor", "Available for mentorship", "VolunteerActivism"))
+        }
+        if (logsCount >= 5) {
+            badges.add(com.example.data.model.Badge("2", "Long-term Supporter", "Consistently logs updates", "Favorite"))
+        } else if (logsCount >= 1) {
+            badges.add(com.example.data.model.Badge("3", "Active Participant", "Started logging journey", "LocalFireDepartment"))
+        }
+        if (phase.contains("Post", ignoreCase = true)) {
+            badges.add(com.example.data.model.Badge("4", "Veteran", "Post-transplant phase", "VerifiedUser"))
+        }
+        return badges
+    }
+
     fun saveProfile(name: String, age: Int, location: String, medicalHistory: String, aboutMe: String, journeyPhase: String, isAvailableForMentorship: Boolean) {
         val currentLogs = _userProfile.value?.dailyLogs ?: emptyList()
         sharedPrefs.edit().apply {
@@ -239,12 +302,35 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             putBoolean("profile_mentorship", isAvailableForMentorship)
             apply()
         }
-        _userProfile.value = Profile(id = "me", name = name, age = age, location = location, medicalHistory = medicalHistory, aboutMe = aboutMe, journeyPhase = journeyPhase, isAvailableForMentorship = isAvailableForMentorship, dailyLogs = currentLogs)
+        _userProfile.value = Profile(id = "me", name = name, age = age, location = location, medicalHistory = medicalHistory, aboutMe = aboutMe, journeyPhase = journeyPhase, isAvailableForMentorship = isAvailableForMentorship, dailyLogs = currentLogs, badges = getBadgesForProfile(isAvailableForMentorship, currentLogs.size, journeyPhase))
         
         viewModelScope.launch {
+
             // Simulate finding a new match after updating the profile
             kotlinx.coroutines.delay(3000)
             _notificationEvent.emit("A new peer match was found based on your updated profile!")
+        }
+    }
+
+    private val _isTranscribing = MutableStateFlow(false)
+    val isTranscribing = _isTranscribing.asStateFlow()
+
+    fun transcribeAndAddAudioLog(base64Audio: String, mood: Int, symptoms: String) {
+        viewModelScope.launch {
+            _isTranscribing.value = true
+            val transcription = geminiRepository.transcribeAudio(base64Audio)
+            val parts = transcription.split("|||")
+            if (parts.size >= 3) {
+                val extractedMood = parts[0].trim().toIntOrNull() ?: mood
+                val extractedSymptoms = parts[1].trim()
+                val extractedNotes = parts[2].trim()
+                addDailyLog(extractedMood, extractedSymptoms, extractedNotes)
+            } else {
+                addDailyLog(mood, symptoms, "[Audio Transcript]: $transcription")
+            }
+            addDailyLog(mood, symptoms, "[Audio Transcript]: $transcription")
+            _isTranscribing.value = false
+            _notificationEvent.emit("Audio transcribed and log added.")
         }
     }
 
@@ -264,7 +350,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
         
         sharedPrefs.edit().putString("profile_daily_logs", logsStr).apply()
-        _userProfile.value = currentProfile.copy(dailyLogs = newLogs)
+        _userProfile.value = currentProfile.copy(dailyLogs = newLogs, badges = getBadgesForProfile(currentProfile.isAvailableForMentorship, newLogs.size, currentProfile.journeyPhase))
     }
 
     fun sendMessageToCounselor(message: String) {
@@ -274,6 +360,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _isCounselingLoading.value = true
 
         viewModelScope.launch {
+
             val response = geminiRepository.getCounselingResponse(message, newHistory)
             val updatedHistory = _chatHistory.value.toMutableList()
             updatedHistory.add(Content(parts = listOf(Part(text = response)), role = "model"))
@@ -285,6 +372,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun searchMedicalInfo(query: String) {
         _isSearching.value = true
         viewModelScope.launch {
+
             val result = geminiRepository.searchMedicalResources(query)
             _searchResults.value = result
             _isSearching.value = false
@@ -310,6 +398,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _isSendingPrivateMessage.value = true
 
         viewModelScope.launch {
+
             val peerProfile = _profiles.value.find { it.id == peerId } ?: Profile(
                 id = peerId,
                 name = "Matched Peer",

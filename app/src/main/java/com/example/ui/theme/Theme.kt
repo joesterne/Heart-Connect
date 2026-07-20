@@ -8,7 +8,38 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+
+private val HighContrastLightColorScheme = lightColorScheme(
+    primary = Color(0xFF000000),
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFF000000),
+    onPrimaryContainer = Color(0xFFFFFFFF),
+    background = Color(0xFFFFFFFF),
+    onBackground = Color(0xFF000000),
+    surface = Color(0xFFFFFFFF),
+    onSurface = Color(0xFF000000),
+    surfaceVariant = Color(0xFFE0E0E0),
+    onSurfaceVariant = Color(0xFF000000),
+    outline = Color(0xFF000000)
+)
+private val HighContrastDarkColorScheme = darkColorScheme(
+    primary = Color(0xFFFFFFFF),
+    onPrimary = Color(0xFF000000),
+    primaryContainer = Color(0xFFFFFFFF),
+    onPrimaryContainer = Color(0xFF000000),
+    background = Color(0xFF000000),
+    onBackground = Color(0xFFFFFFFF),
+    surface = Color(0xFF000000),
+    onSurface = Color(0xFFFFFFFF),
+    surfaceVariant = Color(0xFF202020),
+    onSurfaceVariant = Color(0xFFFFFFFF),
+    outline = Color(0xFFFFFFFF)
+)
 
 private val DarkColorScheme = darkColorScheme(
     primary = md_theme_dark_primary,
@@ -57,12 +88,16 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun MyApplicationTheme(
   darkTheme: Boolean = isSystemInDarkTheme(),
+  highContrast: Boolean = false,
+  largeFont: Boolean = false,
   // Dynamic color is disabled by default for strict theme mapping
   dynamicColor: Boolean = false,
   content: @Composable () -> Unit,
 ) {
   val colorScheme =
     when {
+      highContrast && darkTheme -> HighContrastDarkColorScheme
+      highContrast && !darkTheme -> HighContrastLightColorScheme
       dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
         val context = LocalContext.current
         if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
@@ -72,5 +107,15 @@ fun MyApplicationTheme(
       else -> LightColorScheme
     }
 
-  MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
+  MaterialTheme(colorScheme = colorScheme, typography = Typography) {
+      if (largeFont) {
+          val currentDensity = LocalDensity.current
+          CompositionLocalProvider(
+              LocalDensity provides Density(density = currentDensity.density, fontScale = currentDensity.fontScale * 1.3f),
+              content = content
+          )
+      } else {
+          content()
+      }
+  }
 }

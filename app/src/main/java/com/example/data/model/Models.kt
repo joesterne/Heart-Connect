@@ -8,6 +8,13 @@ data class DailyLog(
     val notes: String = ""
 )
 
+data class Badge(
+    val id: String,
+    val name: String,
+    val description: String,
+    val iconResName: String = "Star" // Simplified mapping for compose icons
+)
+
 data class Profile(
     val id: String = "",
     val name: String = "",
@@ -17,7 +24,8 @@ data class Profile(
     val aboutMe: String = "",
     val journeyPhase: String = "Not specified",
     val isAvailableForMentorship: Boolean = false,
-    val dailyLogs: List<DailyLog> = emptyList()
+    val dailyLogs: List<DailyLog> = emptyList(),
+    val badges: List<Badge> = emptyList()
 )
 
 data class EducationalContent(

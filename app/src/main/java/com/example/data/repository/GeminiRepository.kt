@@ -36,8 +36,15 @@ data class Content(
 )
 
 @Serializable
+data class InlineData(
+    val mimeType: String,
+    val data: String
+)
+
+@Serializable
 data class Part(
-    val text: String? = null
+    val text: String? = null,
+    val inlineData: InlineData? = null
 )
 
 @Serializable
@@ -109,9 +116,26 @@ class GeminiRepository {
         }
     }
 
+    suspend fun transcribeAudio(base64Audio: String): String = withContext(Dispatchers.IO) {
+        val apiKey = BuildConfig.GEMINI_API_KEY
+        val model = "gemini-1.5-flash"
+        val request = GenerateContentRequest(
+            contents = listOf(Content(parts = listOf(
+                Part(text = "Extract the mood on a scale of 1-5 (where 1 is terrible, 5 is great), a list of symptoms, and any other notes from this audio. Return ONLY the format: MOOD_NUMBER|||SYMPTOMS_STRING|||NOTES_STRING. Example: 3|||Fatigue, Headache|||Had a long day today."),
+                Part(inlineData = InlineData(mimeType = "audio/mp4", data = base64Audio))
+            ), role = "user"))
+        )
+        try {
+            val response = RetrofitClient.service.generateContent(model, apiKey, request)
+            response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: "Could not transcribe audio."
+        } catch (e: Exception) {
+            "Error transcribing audio: ${e.localizedMessage}"
+        }
+    }
+
     suspend fun searchMedicalResources(query: String): String = withContext(Dispatchers.IO) {
         val apiKey = BuildConfig.GEMINI_API_KEY
-        val model = "gemini-3.5-flash"
+        val model = "gemini-1.5-flash"
         val request = GenerateContentRequest(
             contents = listOf(Content(parts = listOf(Part(text = "Search for the latest up-to-date resources and advice for heart transplant waitlist patients regarding: $query")), role = "user")),
             tools = listOf(Tool(googleSearch = JsonObject(emptyMap())))

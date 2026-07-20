@@ -1,0 +1,1 @@
+sed -i '/import androidx.compose.material.icons.filled.Favorite/a \import androidx.compose.material.icons.filled.LocalFireDepartment\nimport androidx.compose.material.icons.filled.Star\nimport androidx.compose.material.icons.filled.VerifiedUser\nimport androidx.compose.material.icons.filled.VolunteerActivism' app/src/main/java/com/example/ui/screens/ProfileScreen.kt

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -38,8 +39,9 @@ fun FavoritesScreen(
             TopAppBar(
                 title = { Text("Favorites") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    val openDrawer = com.example.ui.navigation.LocalOpenDrawer.current
+                    IconButton(onClick = openDrawer) {
+                        Icon(Icons.Default.Menu, contentDescription = "Menu")
                     }
                 }
             )
@@ -67,7 +69,7 @@ fun FavoritesScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        items(savedEduList) { content ->
+                        items(items = savedEduList, key = { it.id }) { content ->
                             EducationalCard(
                                 content = content,
                                 isSaved = true,
@@ -85,7 +87,7 @@ fun FavoritesScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(savedPostsList) { post ->
+                        items(items = savedPostsList, key = { it.id }) { post ->
                             PostCard(
                                 post = post,
                                 isSaved = true,

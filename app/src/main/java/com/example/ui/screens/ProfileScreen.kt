@@ -1,4 +1,5 @@
 package com.example.ui.screens
+import androidx.compose.foundation.shape.CircleShape
 
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -8,11 +9,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material.icons.filled.VolunteerActivism
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MedicalInformation
 import androidx.compose.material.icons.filled.Save
@@ -25,6 +32,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Stop
+import com.example.util.AudioRecorderHelper
+import kotlinx.coroutines.launch
+
 import com.example.viewmodel.AppViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,8 +81,9 @@ fun ProfileScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             TopAppBar(
                 title = { Text(if (isEditMode) "Edit Profile" else "My Profile", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    val openDrawer = com.example.ui.navigation.LocalOpenDrawer.current
+                    IconButton(onClick = openDrawer) {
+                        Icon(Icons.Default.Menu, contentDescription = "Menu")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -153,7 +171,7 @@ fun ProfileScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         readOnly = true,
                         label = { Text("Journey Phase") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedPhaseDropdown) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor(),
+                        modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
                         shape = RoundedCornerShape(24.dp)
                     )
                     ExposedDropdownMenu(
@@ -187,9 +205,9 @@ fun ProfileScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             onCheckedChange = { isAvailableForMentorship = it }
                         )
                     }
-                } else {
-                    isAvailableForMentorship = false
-                }
+            } else {
+                isAvailableForMentorship = false
+            }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -198,11 +216,10 @@ fun ProfileScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         val age = ageString.toIntOrNull()
                         if (name.isBlank() || age == null || location.isBlank() || medicalHistory.isBlank()) {
                             Toast.makeText(context, "Please fill out all fields with valid information.", Toast.LENGTH_LONG).show()
-                        } else {
-                            viewModel.saveProfile(name, age, location, medicalHistory, aboutMe, journeyPhase, isAvailableForMentorship)
-                            Toast.makeText(context, "Profile successfully saved securely to local storage!", Toast.LENGTH_SHORT).show()
-                            isEditMode = false
-                        }
+            } else {
+                viewModel.saveProfile(name, age, location, medicalHistory, aboutMe, journeyPhase, isAvailableForMentorship)
+                isEditMode = false
+            }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -219,23 +236,9 @@ fun ProfileScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(24.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
+                    Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(64.dp)
-                                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(32.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = userProfile?.name?.take(1)?.uppercase() ?: "U",
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    color = MaterialTheme.colorScheme.onPrimary
-                                )
-                            }
+                            Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.width(16.dp))
                             Column {
                                 Text(userProfile?.name ?: "Unknown User", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -279,7 +282,16 @@ fun ProfileScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
+                if (!userProfile?.badges.isNullOrEmpty()) {
+                    BadgesSection(badges = userProfile!!.badges)
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
                 DailyTrackerSection(viewModel = viewModel, userProfile = userProfile)
+
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                AccessibilitySettingsSection(viewModel = viewModel)
 
                 Spacer(modifier = Modifier.height(16.dp))
                 
@@ -337,7 +349,24 @@ fun ProfileScreen(viewModel: AppViewModel, onBack: () -> Unit) {
 
 @Composable
 fun DailyTrackerSection(viewModel: AppViewModel, userProfile: com.example.data.model.Profile?) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var isAddingLog by remember { mutableStateOf(false) }
+    var isRecording by remember { mutableStateOf(false) }
+    var audioRecorder by remember { mutableStateOf<AudioRecorderHelper?>(null) }
+    val isTranscribing by viewModel.isTranscribing.collectAsState()
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            audioRecorder = AudioRecorderHelper(context)
+            audioRecorder?.startRecording()
+            isRecording = true
+        } else {
+            Toast.makeText(context, "Microphone permission denied", Toast.LENGTH_SHORT).show()
+        }
+    }
     var mood by remember { mutableStateOf(3f) }
     var symptoms by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
@@ -398,14 +427,49 @@ fun DailyTrackerSection(viewModel: AppViewModel, userProfile: com.example.data.m
                     }
                 }
             } else {
-                Button(
-                    onClick = { isAddingLog = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp)
-                ) {
-                    Icon(Icons.Default.Save, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Add Daily Log")
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Button(
+                        onClick = { isAddingLog = true },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(24.dp)
+                    ) {
+                        Icon(Icons.Default.Save, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Text Log")
+                    }
+                    Button(
+                        onClick = {
+                            if (isRecording) {
+                                val base64Audio = audioRecorder?.stopRecording()
+                                isRecording = false
+                                if (base64Audio != null) {
+                                    viewModel.transcribeAndAddAudioLog(base64Audio, mood.toInt(), symptoms)
+                                    mood = 3f
+                                    symptoms = ""
+                                    notes = ""
+                                }
+                            } else {
+                                if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                                    audioRecorder = AudioRecorderHelper(context)
+                                    audioRecorder?.startRecording()
+                                    isRecording = true
+                                } else {
+                                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                }
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = if (isRecording) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary),
+                        shape = RoundedCornerShape(24.dp)
+                    ) {
+                        if (isTranscribing) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
+                        } else {
+                            Icon(if (isRecording) Icons.Default.Stop else Icons.Default.Mic, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(if (isRecording) "Stop" else "Voice")
+                        }
+                    }
                 }
             }
 
@@ -442,15 +506,17 @@ fun DailyTrackerSection(viewModel: AppViewModel, userProfile: com.example.data.m
 
 @Composable
 fun MoodTrendChart(logs: List<com.example.data.model.DailyLog>) {
-    val thirtyDaysAgo = System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000
-    val recentLogs = logs.filter { it.timestamp >= thirtyDaysAgo }.sortedBy { it.timestamp }
+    val recentLogs = remember(logs) {
+        val thirtyDaysAgo = System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000
+        logs.filter { it.timestamp >= thirtyDaysAgo }.sortedBy { it.timestamp }
+    }
 
     if (recentLogs.isEmpty()) {
         Text("No mood data yet to display a 30-day trend.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
 
-    val averageMood = recentLogs.map { it.mood }.average()
+    val averageMood = remember(recentLogs) { recentLogs.map { it.mood }.average() }
     val trendText = when {
         averageMood >= 4.0 -> "Consistently positive mood"
         averageMood >= 3.0 -> "Stable mood with some fluctuations"
@@ -480,8 +546,10 @@ fun MoodTrendChart(logs: List<com.example.data.model.DailyLog>) {
             verticalAlignment = Alignment.Bottom,
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            val maxItems = 30
-            val displayLogs = recentLogs.takeLast(maxItems)
+            val displayLogs = remember(recentLogs) {
+                val maxItems = 30
+                recentLogs.takeLast(maxItems)
+            }
             displayLogs.forEach { log ->
                 val color = when(log.mood) {
                     5, 4 -> MaterialTheme.colorScheme.primary
@@ -495,6 +563,118 @@ fun MoodTrendChart(logs: List<com.example.data.model.DailyLog>) {
                         .fillMaxHeight(log.mood / 5f)
                         .background(color, RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun AccessibilitySettingsSection(viewModel: AppViewModel) {
+    val isHighContrast by viewModel.isHighContrast.collectAsState()
+    val isLargeFont by viewModel.isLargeFont.collectAsState()
+    
+    val systemDarkMode = androidx.compose.foundation.isSystemInDarkTheme()
+    val isDarkModeState by viewModel.isDarkMode.collectAsState()
+    val isDarkMode = isDarkModeState ?: systemDarkMode
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text("Accessibility Options", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Dark Mode", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                    Text("Reduces eye strain by using dark colors", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(
+                    checked = isDarkMode,
+                    onCheckedChange = { viewModel.toggleDarkMode(it) }
+                )
+            }
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("High Contrast Mode", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                    Text("Increases contrast for better visibility", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(
+                    checked = isHighContrast,
+                    onCheckedChange = { viewModel.toggleHighContrast(it) }
+                )
+            }
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Large Font Size", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                    Text("Increases the size of all text", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(
+                    checked = isLargeFont,
+                    onCheckedChange = { viewModel.toggleLargeFont(it) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun BadgesSection(badges: List<com.example.data.model.Badge>) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text("Earned Badges", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+            
+            badges.forEach { badge ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val icon = when (badge.iconResName) {
+                        "VolunteerActivism" -> Icons.Default.VolunteerActivism
+                        "Favorite" -> Icons.Default.Favorite
+                        "LocalFireDepartment" -> Icons.Default.LocalFireDepartment
+                        "VerifiedUser" -> Icons.Default.VerifiedUser
+                        else -> Icons.Default.Star
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(icon, contentDescription = badge.name, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Text(badge.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                        Text(badge.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
             }
         }
     }

@@ -1,0 +1,1 @@
+sed -i 's/                _educationalContent.value = listOf(/                kotlinx.coroutines.delay(1000)\n                _educationalContent.value = listOf(/g' app/src/main/java/com/example/viewmodel/AppViewModel.kt

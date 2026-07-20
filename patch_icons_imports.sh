@@ -1,0 +1,2 @@
+sed -i 's/import androidx.compose.material.icons.filled.Chat/import androidx.compose.material.icons.automirrored.filled.Chat/g' app/src/main/java/com/example/ui/navigation/AppNavigation.kt app/src/main/java/com/example/ui/screens/DashboardScreen.kt
+sed -i 's/import androidx.compose.material.icons.filled.MenuBook/import androidx.compose.material.icons.automirrored.filled.MenuBook/g' app/src/main/java/com/example/ui/navigation/AppNavigation.kt app/src/main/java/com/example/ui/screens/DashboardScreen.kt

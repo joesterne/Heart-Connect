@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
@@ -52,8 +53,9 @@ fun CommunityScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             TopAppBar(
                 title = { Text("Community") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    val openDrawer = com.example.ui.navigation.LocalOpenDrawer.current
+                    IconButton(onClick = openDrawer) {
+                        Icon(Icons.Default.Menu, contentDescription = "Menu")
                     }
                 }
             )
@@ -102,7 +104,7 @@ fun CommunityScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             Text("Encrypted & safe environment for peer counseling.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Spacer(modifier = Modifier.height(8.dp))
                         }
-                        items(groups) { group ->
+                        items(items = groups, key = { it.id }) { group ->
                             GroupCard(group)
                         }
                     }
@@ -138,12 +140,14 @@ fun CommunityFeed(
     var searchQuery by remember { mutableStateOf("") }
     
     val journeyPhases = listOf("All Phases", "Pre-transplant", "Waitlisted", "Post-transplant recovery", "Long-term survivor", "Caregiver")
-    val filteredPosts = posts.filter { post ->
-        val phaseMatch = selectedFilter == "All Phases" || post.authorJourneyPhase == selectedFilter
-        val searchMatch = searchQuery.isBlank() || 
-            post.content.contains(searchQuery, ignoreCase = true) || 
-            post.authorName.contains(searchQuery, ignoreCase = true)
-        phaseMatch && searchMatch
+    val filteredPosts = remember(posts, selectedFilter, searchQuery) {
+        posts.filter { post ->
+            val phaseMatch = selectedFilter == "All Phases" || post.authorJourneyPhase == selectedFilter
+            val searchMatch = searchQuery.isBlank() || 
+                post.content.contains(searchQuery, ignoreCase = true) || 
+                post.authorName.contains(searchQuery, ignoreCase = true)
+            phaseMatch && searchMatch
+        }
     }
     
     Column(modifier = Modifier.fillMaxSize()) {
@@ -188,7 +192,7 @@ fun CommunityFeed(
                             readOnly = true,
                             label = { Text("Filter by Phase") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = filterExpanded) },
-                            modifier = Modifier.fillMaxWidth().menuAnchor(),
+                            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
                             shape = RoundedCornerShape(24.dp)
                         )
                         ExposedDropdownMenu(
@@ -227,7 +231,7 @@ fun CommunityFeed(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(filteredPosts) { post ->
+            items(items = filteredPosts, key = { it.id }) { post ->
                 PostCard(
                     post = post,
                     isSaved = savedPosts.contains(post.id),
@@ -379,7 +383,7 @@ fun QAFeed(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(inquiries) { inquiry ->
+            items(items = inquiries, key = { it.id }) { inquiry ->
                 QACard(
                     inquiry = inquiry,
                     isMentor = isMentor,
@@ -483,9 +487,11 @@ fun CentersMap() {
     }
 
     val centers = listOf(
-        Pair(LatLng(37.7694, -122.4862), "UCSF Medical Center"),
-        Pair(LatLng(37.4300, -122.1700), "Stanford Hospital"),
-        Pair(LatLng(37.7944, -122.4000), "Community Support Group A")
+        Pair(LatLng(37.7694, -122.4862), "UCSF Medical Center - Support Group"),
+        Pair(LatLng(37.4300, -122.1700), "Stanford Hospital - Patient Meetup"),
+        Pair(LatLng(37.7944, -122.4000), "Community Support Group A"),
+        Pair(LatLng(37.8044, -122.2711), "Oakland Transplant Survivor Event"),
+        Pair(LatLng(37.3382, -121.8863), "San Jose Heart Health Walk")
     )
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -495,7 +501,7 @@ fun CentersMap() {
             shape = RoundedCornerShape(16.dp)
         ) {
             Text(
-                "Find nearby transplant centers and support groups. (Requires Maps API Key in Settings)",
+                "Find nearby transplant centers, support groups, and community events on the map below.",
                 modifier = Modifier.padding(16.dp),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -511,7 +517,7 @@ fun CentersMap() {
                     Marker(
                         state = MarkerState(position = latLng),
                         title = title,
-                        snippet = "Transplant Support"
+                        snippet = "Transplant Support & Events"
                     )
                 }
             }
