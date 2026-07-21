@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.data.model.Profile
@@ -104,6 +105,33 @@ fun DashboardScreen(
                             Text("You are not alone.", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
                             Text("Find strength in community.", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onPrimary)
                         }
+                    }
+                }
+            }
+
+                        item {
+                val isHighContrast by viewModel.isHighContrast.collectAsState()
+                Card(
+                    modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {
+                        contentDescription = "Accessibility options"
+                    },
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("High Contrast Mode", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text("Improves readability for visual accessibility", style = MaterialTheme.typography.bodySmall)
+                        }
+                        Switch(
+                            checked = isHighContrast,
+                            onCheckedChange = { viewModel.toggleHighContrast(it) },
+                            modifier = Modifier.semantics { contentDescription = "Toggle high contrast mode" }
+                        )
                     }
                 }
             }
@@ -279,7 +307,9 @@ fun DashboardScreen(
 @Composable
 fun ProfileCard(profile: Profile, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {
+            contentDescription = "Profile card for ${profile.name}, ${profile.age} years old in ${profile.location}. Medical history: ${profile.medicalHistory}."
+        },
         onClick = onClick,
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -329,7 +359,9 @@ fun ProfileCard(profile: Profile, onClick: () -> Unit) {
 
 @Composable
 fun ResourceContactItem(title: String, info: String, desc: String) {
-    Column {
+    Column(modifier = Modifier.semantics(mergeDescendants = true) {
+        contentDescription = "$title, contact: $info. $desc"
+    }) {
         Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSecondaryContainer)
         Text(info, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
         Text(desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f))
