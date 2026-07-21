@@ -177,10 +177,13 @@ fun PrivateChatScreen(viewModel: AppViewModel, peerId: String, onBack: () -> Uni
                         )
                     )
                     Spacer(Modifier.width(8.dp))
+                    val context = androidx.compose.ui.platform.LocalContext.current
                     FloatingActionButton(
                         onClick = {
-                            if (messageText.isNotBlank()) {
-                                viewModel.sendPrivateSecureMessage(peerId, messageText)
+                            if (messageText.trim().isEmpty()) {
+                                android.widget.Toast.makeText(context, "Message cannot be empty.", android.widget.Toast.LENGTH_SHORT).show()
+                            } else {
+                                viewModel.sendPrivateSecureMessage(peerId, messageText.trim())
                                 messageText = ""
                             }
                         },

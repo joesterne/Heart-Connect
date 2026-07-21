@@ -236,7 +236,14 @@ fun DashboardScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
                     trailingIcon = {
-                        IconButton(onClick = { viewModel.searchMedicalInfo(searchQuery) }) {
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        IconButton(onClick = { 
+                            if (searchQuery.trim().length < 3) {
+                                android.widget.Toast.makeText(context, "Search query must be at least 3 characters.", android.widget.Toast.LENGTH_SHORT).show()
+                            } else {
+                                viewModel.searchMedicalInfo(searchQuery.trim()) 
+                            }
+                        }) {
                             Icon(Icons.Default.Search, contentDescription = "Search")
                         }
                     }

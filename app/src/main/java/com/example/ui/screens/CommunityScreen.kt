@@ -210,10 +210,13 @@ fun CommunityFeed(
                             }
                         }
                     }
+                    val context = androidx.compose.ui.platform.LocalContext.current
                     Button(
                         onClick = {
-                            if (newPostText.isNotBlank()) {
-                                onCreatePost(newPostText)
+                            if (newPostText.trim().length < 5) {
+                                android.widget.Toast.makeText(context, "Post must be at least 5 characters.", android.widget.Toast.LENGTH_SHORT).show()
+                            } else {
+                                onCreatePost(newPostText.trim())
                                 newPostText = ""
                             }
                         },
@@ -362,10 +365,13 @@ fun QAFeed(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    val context = androidx.compose.ui.platform.LocalContext.current
                     Button(
                         onClick = {
-                            if (newQuestionText.isNotBlank()) {
-                                onCreateInquiry(newQuestionText)
+                            if (newQuestionText.trim().length < 10) {
+                                android.widget.Toast.makeText(context, "Question must be at least 10 characters.", android.widget.Toast.LENGTH_SHORT).show()
+                            } else {
+                                onCreateInquiry(newQuestionText.trim())
                                 newQuestionText = ""
                             }
                         },

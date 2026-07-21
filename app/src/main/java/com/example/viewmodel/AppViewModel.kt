@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.model.ChatMessage
 import com.example.data.model.Profile
 import com.example.data.model.SupportGroup
+import com.example.data.repository.SecureStorageRepository
 import com.example.data.repository.FirestoreRepository
 import com.example.data.repository.GeminiRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +25,7 @@ import androidx.security.crypto.MasterKey
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val firestoreRepository = FirestoreRepository(application)
+    private val secureStorageRepository = SecureStorageRepository(application)
     private val geminiRepository = GeminiRepository()
     private val masterKey = MasterKey.Builder(application).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(); private val sharedPrefs = EncryptedSharedPreferences.create(application, "heart_connect_prefs_secure", masterKey, EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV, EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM)
 
@@ -288,6 +290,26 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             badges.add(com.example.data.model.Badge("4", "Veteran", "Post-transplant phase", "VerifiedUser"))
         }
         return badges
+    }
+
+        fun backupLogsSecurely() {
+        val currentLogs = _userProfile.value?.dailyLogs ?: emptyList()
+        val logsStr = currentLogs.joinToString(";;;") { "${it.id}|${it.timestamp}|${it.mood}|${it.symptoms}|${it.notes}" }
+        secureStorageRepository.saveEncryptedFile("daily_logs_backup.enc", logsStr)
+    }
+
+    fun restoreLogsSecurely() {
+        val logsStr = secureStorageRepository.readEncryptedFile("daily_logs_backup.enc")
+        if (logsStr != null && logsStr.isNotBlank()) {
+            val dailyLogs = logsStr.split(";;;").mapNotNull { logStr ->
+                val parts = logStr.split("|")
+                if (parts.size == 5) {
+                    com.example.data.model.DailyLog(parts[0], parts[1].toLong(), parts[2].toInt(), parts[3], parts[4])
+                } else null
+            }
+            _userProfile.value = _userProfile.value?.copy(dailyLogs = dailyLogs)
+            sharedPrefs.edit().putString("profile_daily_logs", logsStr).apply()
+        }
     }
 
     fun saveProfile(name: String, age: Int, location: String, medicalHistory: String, aboutMe: String, journeyPhase: String, isAvailableForMentorship: Boolean) {

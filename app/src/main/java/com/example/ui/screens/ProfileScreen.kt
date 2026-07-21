@@ -214,12 +214,23 @@ fun ProfileScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 Button(
                     onClick = {
                         val age = ageString.toIntOrNull()
-                        if (name.isBlank() || age == null || location.isBlank() || medicalHistory.isBlank()) {
-                            Toast.makeText(context, "Please fill out all fields with valid information.", Toast.LENGTH_LONG).show()
-            } else {
-                viewModel.saveProfile(name, age, location, medicalHistory, aboutMe, journeyPhase, isAvailableForMentorship)
-                isEditMode = false
-            }
+                        var errorMessage = ""
+                        if (name.trim().length < 2) {
+                            errorMessage = "Name must be at least 2 characters."
+                        } else if (age == null || age !in 0..120) {
+                            errorMessage = "Please enter a valid age between 0 and 120."
+                        } else if (location.trim().length < 2) {
+                            errorMessage = "Please enter a valid location."
+                        } else if (medicalHistory.trim().length < 5) {
+                            errorMessage = "Please provide more detail in your medical history."
+                        }
+                        
+                        if (errorMessage.isNotEmpty()) {
+                            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                        } else {
+                            viewModel.saveProfile(name.trim(), age!!, location.trim(), medicalHistory.trim(), aboutMe.trim(), journeyPhase, isAvailableForMentorship)
+                            isEditMode = false
+                        }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -292,6 +303,42 @@ fun ProfileScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 AccessibilitySettingsSection(viewModel = viewModel)
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text("Encrypted Backup", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                        Text("Securely backup and restore your daily logs locally using EncryptedFile.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f))
+                        
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Button(
+                                onClick = { 
+                                    viewModel.backupLogsSecurely() 
+                                    Toast.makeText(context, "Logs backed up securely", Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Backup")
+                            }
+                            OutlinedButton(
+                                onClick = { 
+                                    viewModel.restoreLogsSecurely() 
+                                    Toast.makeText(context, "Logs restored securely", Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Restore")
+                            }
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
                 
