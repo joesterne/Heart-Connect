@@ -109,7 +109,7 @@ class GeminiRepository {
         val apiKey = BuildConfig.GEMINI_API_KEY
         val model = "gemini-3.1-pro-preview"
         val request = GenerateContentRequest(
-            contents = conversationHistory + Content(parts = listOf(Part(text = prompt)), role = "user"),
+            contents = conversationHistory, // The conversationHistory already includes the latest prompt
             generationConfig = GenerationConfig(
                 thinkingConfig = ThinkingConfig(thinkingLevel = "HIGH")
             ),
