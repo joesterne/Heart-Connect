@@ -55,7 +55,10 @@ class FirestoreRepository(private val context: Context) {
 
     suspend fun getPosts(): List<com.example.data.model.CommunityPost> {
         val database = db ?: throw IllegalStateException("Firestore is not available")
-        return database.collection("posts").get().await().toObjects(com.example.data.model.CommunityPost::class.java).sortedByDescending { it.timestamp }
+        return database.collection("posts")
+            .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
+            .limit(50)
+            .get().await().toObjects(com.example.data.model.CommunityPost::class.java)
     }
 
     suspend fun createPost(post: com.example.data.model.CommunityPost) {

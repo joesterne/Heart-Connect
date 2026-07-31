@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
 import com.example.data.repository.Content
 import com.example.data.repository.Part
 import androidx.security.crypto.EncryptedSharedPreferences
@@ -153,9 +154,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _isGlobalLoading.value = true
             try {
-                _profiles.value = firestoreRepository.getProfiles()
-                _supportGroups.value = firestoreRepository.getGroups()
-                _communityPosts.value = firestoreRepository.getPosts()
+                val profilesDeferred = async { firestoreRepository.getProfiles() }
+                val groupsDeferred = async { firestoreRepository.getGroups() }
+                val postsDeferred = async { firestoreRepository.getPosts() }
+                
+                _profiles.value = profilesDeferred.await()
+                _supportGroups.value = groupsDeferred.await()
+                _communityPosts.value = postsDeferred.await()
             } catch (e: Exception) {
                 // Mock data fallback if firebase fails due to missing google-services.json
                 _profiles.value = listOf(
@@ -294,7 +299,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
         fun backupLogsSecurely() {
         val currentLogs = _userProfile.value?.dailyLogs ?: emptyList()
-        val logsStr = currentLogs.joinToString(";;;") { "${it.id}|${it.timestamp}|${it.mood}|${it.symptoms}|${it.notes}" }
+        val logsStr = currentLogs.joinToString(";;;") { "${it.id}|||${it.timestamp}|||${it.mood}|||${it.symptoms}|||${it.notes}" }
         secureStorageRepository.saveEncryptedFile("daily_logs_backup.enc", logsStr)
     }
 
@@ -302,7 +307,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val logsStr = secureStorageRepository.readEncryptedFile("daily_logs_backup.enc")
         if (logsStr != null && logsStr.isNotBlank()) {
             val dailyLogs = logsStr.split(";;;").mapNotNull { logStr ->
-                val parts = logStr.split("|")
+                val parts = logStr.split("|||")
                 if (parts.size == 5) {
                     com.example.data.model.DailyLog(parts[0], parts[1].toLong(), parts[2].toInt(), parts[3], parts[4])
                 } else null
@@ -350,7 +355,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             } else {
                 addDailyLog(mood, symptoms, "[Audio Transcript]: $transcription")
             }
-            addDailyLog(mood, symptoms, "[Audio Transcript]: $transcription")
             _isTranscribing.value = false
             _notificationEvent.emit("Audio transcribed and log added.")
         }
@@ -445,10 +449,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 Be supportive, empathetic, realistic, and talk like a peer patient. Keep your response relatively short, friendly, and human.
             """.trimIndent()
 
-            val customRepository = GeminiRepository()
             // Request dynamic reply
             val replyText = try {
-                customRepository.getCounselingResponse(prompt, geminiHistory)
+                geminiRepository.getCounselingResponse(prompt, geminiHistory, systemInstructions)
             } catch (e: Exception) {
                 "Hey! I'm glad we are connected. This journey is tough but we have each other."
             }

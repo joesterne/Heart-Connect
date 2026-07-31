@@ -105,15 +105,13 @@ object RetrofitClient {
 }
 
 class GeminiRepository {
-    suspend fun getCounselingResponse(prompt: String, conversationHistory: List<Content>): String = withContext(Dispatchers.IO) {
+    suspend fun getCounselingResponse(prompt: String, conversationHistory: List<Content>, customSystemInstruction: String? = null): String = withContext(Dispatchers.IO) {
         val apiKey = BuildConfig.GEMINI_API_KEY
-        val model = "gemini-3.1-pro-preview"
+        val model = "gemini-1.5-flash"
+        val instructionText = customSystemInstruction ?: "You are an empathetic, highly trained medical counselor for patients on the heart transplant waiting list. Be supportive, informative, and compassionate."
         val request = GenerateContentRequest(
             contents = conversationHistory, // The conversationHistory already includes the latest prompt
-            generationConfig = GenerationConfig(
-                thinkingConfig = ThinkingConfig(thinkingLevel = "HIGH")
-            ),
-            systemInstruction = Content(parts = listOf(Part(text = "You are an empathetic, highly trained medical counselor for patients on the heart transplant waiting list. Be supportive, informative, and compassionate.")))
+            systemInstruction = Content(parts = listOf(Part(text = instructionText)))
         )
         try {
             val response = RetrofitClient.service.generateContent(model, apiKey, request)
