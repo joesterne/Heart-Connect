@@ -27,6 +27,7 @@ import com.example.ui.screens.MetricsScreen
 import com.example.ui.screens.EducationalScreen
 import com.example.ui.screens.FavoritesScreen
 import com.example.ui.screens.PrivateChatScreen
+import com.example.ui.screens.GroupChatScreen
 import com.example.viewmodel.AppViewModel
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
@@ -160,7 +161,8 @@ fun AppNavigation(viewModel: AppViewModel = viewModel()) {
                 composable("community") {
                     CommunityScreen(
                         viewModel = viewModel,
-                        onBack = { navController.popBackStack() }
+                        onBack = { navController.popBackStack() },
+                        onNavigateToGroupChat = { groupId -> navController.navigate("group_chat/$groupId") }
                     )
                 }
                 composable("profile") {
@@ -192,6 +194,14 @@ fun AppNavigation(viewModel: AppViewModel = viewModel()) {
                     PrivateChatScreen(
                         viewModel = viewModel,
                         peerId = peerId,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable("group_chat/{groupId}") { backStackEntry ->
+                    val groupId = backStackEntry.arguments?.getString("groupId") ?: "1"
+                    GroupChatScreen(
+                        viewModel = viewModel,
+                        groupId = groupId,
                         onBack = { navController.popBackStack() }
                     )
                 }

@@ -2,7 +2,16 @@
 
 This document tracks the recent improvements, bug fixes, and performance optimizations made to the Heart Connect Android application.
 
-## 🚀 Performance & Cost Optimizations
+## 📅 Support Group Schedule
+
+* **Upcoming Sessions View**: Added a new "Schedule" tab within the Community section to display upcoming moderated support sessions.
+* **RSVP & Reminders**: Users can RSVP to upcoming clinical support groups and peer events. The system tracks attendees and confirms RSVPs, simulating reminder notifications for hosted sessions.
+
+## 👥 Moderated Anonymous Support Groups
+
+* **Clinical Professional Oversight**: Integrated specialized support groups overseen by verified cardiothoracic specialists, transplant care coordinators, and clinical social workers (e.g., *Pre-Transplant Waitlist Circle*, *Post-Transplant Recovery & Wellness*, and *Caregivers & Loved Ones Support*).
+* **Flexible Anonymity & Alias Customization**: Users can toggle between identified posting and anonymous participation with auto-generated or custom peer aliases (e.g., `HopefulHeart_842`) to safeguard privacy and reduce emotional vulnerability barriers.
+* **Interactive Group Chat & Clinical Guidance**: Built `GroupChatScreen.kt` featuring distinct visual badges for verified medical moderators, real-time message stream, safety/rules dialogs, and simulated medical moderator responses powered by Gemini for empathetic clinical support.
 
 * **Parallelized Data Loading**: Streamlined the dashboard initialization in `AppViewModel` by using Kotlin Coroutines (`async`/`await`) to fetch user profiles, support groups, and community posts concurrently, significantly reducing the initial loading time.
 * **Database Query Optimization**: Refactored `getPosts()` in `FirestoreRepository` to sort by timestamp (`orderBy`) and limit results (`limit(50)`) directly at the database level. This prevents downloading the entire collection into memory, reducing bandwidth usage, memory overhead, and improving end-user experience for long-running lists.

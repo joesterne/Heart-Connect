@@ -58,11 +58,97 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _privateMessages = MutableStateFlow<Map<String, List<ChatMessage>>>(emptyMap())
     val privateMessages: StateFlow<Map<String, List<ChatMessage>>> = _privateMessages.asStateFlow()
 
+    // Support group messages state: mapped by groupId
+    private val _groupMessages = MutableStateFlow<Map<String, List<ChatMessage>>>(
+        mapOf(
+            "1" to listOf(
+                ChatMessage(
+                    id = "g_msg_1",
+                    groupId = "1",
+                    senderId = "mod_1",
+                    senderName = "Dr. Aris Thorne, MD",
+                    isAnonymous = false,
+                    isModerator = true,
+                    moderatorBadge = "Cardiothoracic Specialist",
+                    text = "Welcome to the Pre-Transplant Waitlist Circle. This safe space is monitored to ensure emotional support and medical safety. Please feel free to participate anonymously or with your display name.",
+                    timestamp = System.currentTimeMillis() - 86400000
+                ),
+                ChatMessage(
+                    id = "g_msg_2",
+                    groupId = "1",
+                    senderId = "anon_849",
+                    senderName = "HopefulHeart_42",
+                    isAnonymous = true,
+                    anonymousAlias = "HopefulHeart_42",
+                    isModerator = false,
+                    text = "Lately the waiting is getting harder, especially with sleep disruption. How do others handle the late-night anxiety?",
+                    timestamp = System.currentTimeMillis() - 43200000
+                )
+            ),
+            "2" to listOf(
+                ChatMessage(
+                    id = "g_msg_3",
+                    groupId = "2",
+                    senderId = "mod_2",
+                    senderName = "Nurse Sarah Jenkins, RN",
+                    isAnonymous = false,
+                    isModerator = true,
+                    moderatorBadge = "Transplant Care Coordinator",
+                    text = "Welcome everyone! Reminder for post-transplant members: always track temperature and pill schedules twice daily.",
+                    timestamp = System.currentTimeMillis() - 172800000
+                )
+            ),
+            "3" to listOf(
+                ChatMessage(
+                    id = "g_msg_4",
+                    groupId = "3",
+                    senderId = "mod_3",
+                    senderName = "Elena Rostova, LCSW",
+                    isAnonymous = false,
+                    isModerator = true,
+                    moderatorBadge = "Clinical Social Worker",
+                    text = "Caregiver burnout is real and valid. Welcome to our supportive circle.",
+                    timestamp = System.currentTimeMillis() - 259200000
+                )
+            )
+        )
+    )
+    val groupMessages: StateFlow<Map<String, List<ChatMessage>>> = _groupMessages.asStateFlow()
+
+    private val _isSendingGroupMessage = MutableStateFlow(false)
+    val isSendingGroupMessage = _isSendingGroupMessage.asStateFlow()
+
     private val _isSendingPrivateMessage = MutableStateFlow(false)
     val isSendingPrivateMessage = _isSendingPrivateMessage.asStateFlow()
 
     private val _communityPosts = MutableStateFlow<List<com.example.data.model.CommunityPost>>(emptyList())
     val communityPosts: StateFlow<List<com.example.data.model.CommunityPost>> = _communityPosts.asStateFlow()
+
+    private val _scheduledSessions = MutableStateFlow<List<com.example.data.model.ScheduledSession>>(
+        listOf(
+            com.example.data.model.ScheduledSession(
+                id = "s1",
+                groupId = "1",
+                title = "Managing Waitlist Anxiety",
+                moderatorName = "Dr. Aris Thorne, MD",
+                startTime = System.currentTimeMillis() + 86400000,
+                durationMinutes = 60,
+                description = "Open discussion on coping strategies for pre-transplant stress.",
+                attendeesCount = 12
+            ),
+            com.example.data.model.ScheduledSession(
+                id = "s2",
+                groupId = "2",
+                title = "Post-Transplant Meds Check-in",
+                moderatorName = "Nurse Sarah Jenkins, RN",
+                startTime = System.currentTimeMillis() + 172800000,
+                durationMinutes = 45,
+                description = "Q&A regarding immunosuppressants and managing side effects.",
+                attendeesCount = 8
+            )
+        )
+    )
+    val scheduledSessions: StateFlow<List<com.example.data.model.ScheduledSession>> = _scheduledSessions.asStateFlow()
 
     private val _qaInquiries = MutableStateFlow<List<com.example.data.model.QAInquiry>>(emptyList())
     val qaInquiries: StateFlow<List<com.example.data.model.QAInquiry>> = _qaInquiries.asStateFlow()
@@ -168,8 +254,39 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     Profile(id = "2", name = "Michael", age = 29, location = "San Francisco, CA", medicalHistory = "Heart failure, listed 1 year ago.", journeyPhase = "Post-transplant recovery", isAvailableForMentorship = true, badges = getBadgesForProfile(true, 10, "Post-transplant recovery"))
                 )
                 _supportGroups.value = listOf(
-                    SupportGroup("1", "General Support", "A safe place for all waitlist patients.", "Dr. Smith", emptyList()),
-                    SupportGroup("2", "Post-Transplant Life", "Discussing what comes next.", "Nurse Jane", emptyList())
+                    SupportGroup(
+                        id = "1",
+                        name = "Pre-Transplant Waitlist Circle",
+                        description = "A compassionate, moderated space for patients navigating waitlist anxiety, physical limitations, and care coordination.",
+                        moderatedBy = "Dr. Aris Thorne, MD",
+                        moderatorTitle = "Cardiothoracic Transplant Specialist",
+                        category = "Waitlist & Coping",
+                        isAnonymousByDefault = true,
+                        rules = listOf("Respect patient privacy", "Anonymous postings welcome", "No medical prescribing - peer emotional support only"),
+                        members = listOf("1", "2")
+                    ),
+                    SupportGroup(
+                        id = "2",
+                        name = "Post-Transplant Recovery & Wellness",
+                        description = "Professional guidance and community sharing on immunosuppressant management, organ rejection monitoring, and emotional readjustment.",
+                        moderatedBy = "Nurse Sarah Jenkins, RN, BSN",
+                        moderatorTitle = "Lead Transplant Care Coordinator",
+                        category = "Post-Transplant Recovery",
+                        isAnonymousByDefault = true,
+                        rules = listOf("Verify medical facts with clinicians", "Safe supportive dialogue", "Zero tolerance for harassment"),
+                        members = listOf("2")
+                    ),
+                    SupportGroup(
+                        id = "3",
+                        name = "Caregivers & Loved Ones Support",
+                        description = "A safe haven for family members and caregivers managing emotional strain and logistical duties alongside their loved ones.",
+                        moderatedBy = "Elena Rostova, LCSW",
+                        moderatorTitle = "Clinical Social Worker & Family Counselor",
+                        category = "Caregiver Support",
+                        isAnonymousByDefault = true,
+                        rules = listOf("Confidential peer support", "Clinical guidance available", "Be respectful"),
+                        members = listOf("1")
+                    )
                 )
                 _communityPosts.value = listOf(
                     com.example.data.model.CommunityPost("1", "1", "Sarah", "Pre-transplant", "Just got my 3-month checkup, everything looks stable!", System.currentTimeMillis() - 86400000),
@@ -472,6 +589,101 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             _privateMessages.value = updatedChats
 
             _isSendingPrivateMessage.value = false
+        }
+    }
+
+    fun sendGroupMessage(groupId: String, text: String, isAnonymous: Boolean, customAlias: String = "") {
+        val group = _supportGroups.value.find { it.id == groupId }
+        val currentProfile = _userProfile.value
+        val actualSenderName = currentProfile?.name ?: "Patient"
+        val displayName = if (isAnonymous) (if (customAlias.isNotBlank()) customAlias else "Anonymous Member") else actualSenderName
+
+        val userMessage = ChatMessage(
+            id = "g_msg_${System.currentTimeMillis()}",
+            groupId = groupId,
+            senderId = currentProfile?.id ?: "me",
+            senderName = actualSenderName,
+            isAnonymous = isAnonymous,
+            anonymousAlias = if (isAnonymous) displayName else "",
+            isModerator = false,
+            text = text,
+            timestamp = System.currentTimeMillis()
+        )
+
+        val currentMap = _groupMessages.value.toMutableMap()
+        val list = currentMap[groupId]?.toMutableList() ?: mutableListOf()
+        list.add(userMessage)
+        currentMap[groupId] = list
+        _groupMessages.value = currentMap
+
+        viewModelScope.launch {
+            try {
+                firestoreRepository.sendMessage(groupId, userMessage)
+            } catch (_: Exception) {}
+
+            // Trigger medical professional moderator response simulation
+            if (group != null) {
+                _isSendingGroupMessage.value = true
+                val prompt = "Patient ($displayName) says in the group '${group.name}': '$text'"
+                val systemInstructions = """
+                    You are ${group.moderatedBy}, ${group.moderatorTitle}, serving as the official clinical moderator for the support group '${group.name}'.
+                    The group description is: '${group.description}'.
+                    A member posted a message (either anonymously or identified). Provide a compassionate, clinically sound, encouraging, and supportive response as the group moderator.
+                    Keep it professional, empathetic, concise (2-4 sentences), and remind members that group discussions supplement but do not replace direct 1-on-1 advice from their primary transplant care team.
+                """.trimIndent()
+
+                val groupHistory = list.map { msg ->
+                    Content(
+                        parts = listOf(Part(text = "${if (msg.isAnonymous) msg.anonymousAlias else msg.senderName}: ${msg.text}")),
+                        role = if (msg.isModerator) "model" else "user"
+                    )
+                }
+
+                val modResponseText = try {
+                    geminiRepository.getCounselingResponse(prompt, groupHistory, systemInstructions)
+                } catch (e: Exception) {
+                    "Thank you for sharing with the group. Please remember to reach out to your clinical care coordinator if you experience any acute changes in symptoms."
+                }
+
+                val modMessage = ChatMessage(
+                    id = "g_msg_mod_${System.currentTimeMillis()}",
+                    groupId = groupId,
+                    senderId = "mod_${group.id}",
+                    senderName = group.moderatedBy,
+                    isAnonymous = false,
+                    isModerator = true,
+                    moderatorBadge = group.moderatorTitle,
+                    text = modResponseText,
+                    timestamp = System.currentTimeMillis()
+                )
+
+                val updatedMap = _groupMessages.value.toMutableMap()
+                val updatedList = updatedMap[groupId]?.toMutableList() ?: mutableListOf()
+                updatedList.add(modMessage)
+                updatedMap[groupId] = updatedList
+                _groupMessages.value = updatedMap
+                _isSendingGroupMessage.value = false
+            }
+        }
+    }
+
+    fun toggleSessionRsvp(sessionId: String) {
+        val current = _scheduledSessions.value.toMutableList()
+        val index = current.indexOfFirst { it.id == sessionId }
+        if (index != -1) {
+            val session = current[index]
+            val newIsRsvped = !session.isRsvped
+            val newCount = if (newIsRsvped) session.attendeesCount + 1 else session.attendeesCount - 1
+            current[index] = session.copy(isRsvped = newIsRsvped, attendeesCount = newCount)
+            _scheduledSessions.value = current
+
+            viewModelScope.launch {
+                if (newIsRsvped) {
+                    _notificationEvent.emit("RSVP confirmed! Reminder set for ${session.title}.")
+                } else {
+                    _notificationEvent.emit("RSVP cancelled for ${session.title}.")
+                }
+            }
         }
     }
 

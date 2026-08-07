@@ -41,6 +41,10 @@ data class SupportGroup(
     val name: String = "",
     val description: String = "",
     val moderatedBy: String = "",
+    val moderatorTitle: String = "Medical Professional Moderator",
+    val category: String = "General Support",
+    val isAnonymousByDefault: Boolean = true,
+    val rules: List<String> = emptyList(),
     val members: List<String> = emptyList()
 )
 
@@ -49,8 +53,24 @@ data class ChatMessage(
     val groupId: String = "",
     val senderId: String = "",
     val senderName: String = "",
+    val isAnonymous: Boolean = false,
+    val anonymousAlias: String = "",
+    val isModerator: Boolean = false,
+    val moderatorBadge: String = "",
     val text: String = "",
     val timestamp: Long = System.currentTimeMillis()
+)
+
+data class ScheduledSession(
+    val id: String = "",
+    val groupId: String = "",
+    val title: String = "",
+    val moderatorName: String = "",
+    val startTime: Long = 0L,
+    val durationMinutes: Int = 60,
+    val description: String = "",
+    val attendeesCount: Int = 0,
+    val isRsvped: Boolean = false
 )
 
 data class CommunityPost(

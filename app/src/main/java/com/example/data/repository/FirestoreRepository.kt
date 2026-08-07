@@ -41,8 +41,39 @@ class FirestoreRepository(private val context: Context) {
         val groups = database.collection("groups").get().await().toObjects(SupportGroup::class.java)
         if (groups.isEmpty()) {
             return listOf(
-                SupportGroup("1", "General Support", "A safe place for all waitlist patients.", "Dr. Smith", emptyList()),
-                SupportGroup("2", "Post-Transplant Life", "Discussing what comes next.", "Nurse Jane", emptyList())
+                SupportGroup(
+                    id = "1",
+                    name = "Pre-Transplant Waitlist Circle",
+                    description = "A compassionate, moderated space for patients navigating waitlist anxiety, physical limitations, and care coordination.",
+                    moderatedBy = "Dr. Aris Thorne, MD",
+                    moderatorTitle = "Cardiothoracic Transplant Specialist",
+                    category = "Waitlist & Coping",
+                    isAnonymousByDefault = true,
+                    rules = listOf("Respect patient privacy", "Anonymous postings welcome", "No medical prescribing - peer emotional support only"),
+                    members = listOf("1", "2")
+                ),
+                SupportGroup(
+                    id = "2",
+                    name = "Post-Transplant Recovery & Wellness",
+                    description = "Professional guidance and community sharing on immunosuppressant management, organ rejection monitoring, and emotional readjustment.",
+                    moderatedBy = "Nurse Sarah Jenkins, RN, BSN",
+                    moderatorTitle = "Lead Transplant Care Coordinator",
+                    category = "Post-Transplant Recovery",
+                    isAnonymousByDefault = true,
+                    rules = listOf("Verify medical facts with clinicians", "Safe supportive dialogue", "Zero tolerance for harassment"),
+                    members = listOf("2")
+                ),
+                SupportGroup(
+                    id = "3",
+                    name = "Caregivers & Loved Ones Support",
+                    description = "A safe haven for family members and caregivers managing emotional strain and logistical duties alongside their loved ones.",
+                    moderatedBy = "Elena Rostova, LCSW",
+                    moderatorTitle = "Clinical Social Worker & Family Counselor",
+                    category = "Caregiver Support",
+                    isAnonymousByDefault = true,
+                    rules = listOf("Confidential peer support", "Clinical guidance available", "Be respectful"),
+                    members = listOf("1")
+                )
             )
         }
         return groups
