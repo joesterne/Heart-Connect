@@ -71,7 +71,9 @@ fun CommunityScreen(
             )
         }
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Column(modifier = Modifier.fillMaxSize().padding(padding), horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(modifier = Modifier.fillMaxSize().widthIn(max = 600.dp)) {
+                Column(modifier = Modifier.fillMaxSize()) {
             ScrollableTabRow(selectedTabIndex = selectedTabIndex, edgePadding = 8.dp) {
                 Tab(
                     selected = selectedTabIndex == 0,
@@ -147,10 +149,11 @@ fun CommunityScreen(
                     )
                 }
             }
-        }
-    }
 }
-
+}
+}
+}
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CommunityFeed(
@@ -446,10 +449,9 @@ fun GroupCard(
                 Spacer(Modifier.width(8.dp))
                 Text("Enter Moderated Group Chat", fontWeight = FontWeight.Bold)
             }
-        }
-    }
 }
-
+}
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QAFeed(
@@ -596,8 +598,8 @@ fun QACard(
                 }
             }
         }
-    }
-}
+            }
+        }
 
 @Composable
 fun CentersMap() {
@@ -770,7 +772,7 @@ fun ScheduledSessionCard(
                     Spacer(Modifier.width(8.dp))
                     Text(if (session.isRsvped) "RSVP Confirmed" else "RSVP & Remind", fontWeight = FontWeight.Bold)
                 }
-            }
-        }
-    }
+}
+}
+}
 }

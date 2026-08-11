@@ -72,7 +72,8 @@ fun PrivateChatScreen(viewModel: AppViewModel, peerId: String, onBack: () -> Uni
             )
         }
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Column(modifier = Modifier.fillMaxSize().padding(padding), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+            Column(modifier = Modifier.fillMaxSize().widthIn(max = 600.dp)) {
             // Visual Banner illustrating encryption keys swapped
             Card(
                 modifier = Modifier
@@ -199,11 +200,11 @@ fun PrivateChatScreen(viewModel: AppViewModel, peerId: String, onBack: () -> Uni
                 }
             }
         }
-    }
 }
-
+}
+}
 @Composable
-fun SecureMessageBubble(message: ChatMessage, isMe: Boolean) {
+fun SecureMessageBubble(message: com.example.data.model.ChatMessage, isMe: Boolean) {
     var showDecrypted by remember { mutableStateOf(false) }
 
     // Standard cipher text preview for visual immersion
@@ -276,10 +277,10 @@ fun SecureMessageBubble(message: ChatMessage, isMe: Boolean) {
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.secondary
                             )
-                        }
-                    }
-                }
-            }
-        }
-    }
+}
+}
+}
+}
+}
+}
 }

@@ -1,0 +1,778 @@
+     1	package com.example.ui.screens
+     2	
+     3	import androidx.compose.foundation.layout.*
+     4	import androidx.compose.foundation.lazy.LazyColumn
+     5	import androidx.compose.foundation.lazy.items
+     6	import androidx.compose.foundation.background
+     7	import androidx.compose.material.icons.Icons
+     8	import androidx.compose.material.icons.filled.Menu
+     9	import androidx.compose.material.icons.automirrored.filled.ArrowBack
+    10	import androidx.compose.material.icons.filled.Bookmark
+    11	import androidx.compose.material.icons.filled.BookmarkBorder
+    12	import androidx.compose.material.icons.filled.Lock
+    13	import androidx.compose.material.icons.filled.Search
+    14	import androidx.compose.material.icons.filled.Verified
+    15	import androidx.compose.material3.*
+    16	import androidx.compose.runtime.Composable
+    17	import androidx.compose.runtime.collectAsState
+    18	import androidx.compose.runtime.getValue
+    19	import androidx.compose.ui.Alignment
+    20	import androidx.compose.ui.Modifier
+    21	import androidx.compose.ui.text.font.FontWeight
+    22	import androidx.compose.ui.unit.dp
+    23	import com.example.data.model.SupportGroup
+    24	import com.example.viewmodel.AppViewModel
+    25	
+    26	import androidx.compose.runtime.mutableStateOf
+    27	import androidx.compose.runtime.remember
+    28	import androidx.compose.runtime.setValue
+    29	import androidx.compose.foundation.shape.RoundedCornerShape
+    30	import com.example.data.model.CommunityPost
+    31	import java.text.SimpleDateFormat
+    32	import java.util.Date
+    33	import java.util.Locale
+    34	import com.google.android.gms.maps.model.CameraPosition
+    35	import com.google.android.gms.maps.model.LatLng
+    36	import com.google.maps.android.compose.GoogleMap
+    37	import com.google.maps.android.compose.Marker
+    38	import com.google.maps.android.compose.MarkerState
+    39	import com.google.maps.android.compose.rememberCameraPositionState
+    40	
+    41	import androidx.compose.material.icons.filled.MedicalServices
+    42	import androidx.compose.material.icons.filled.Shield
+    43	import androidx.compose.material.icons.filled.Check
+    44	import androidx.compose.material.icons.filled.Event
+    45	import androidx.compose.material.icons.filled.VisibilityOff
+    46	
+    47	@OptIn(ExperimentalMaterial3Api::class)
+    48	@Composable
+    49	fun CommunityScreen(
+    50	    viewModel: AppViewModel,
+    51	    onBack: () -> Unit,
+    52	    onNavigateToGroupChat: (String) -> Unit = {}
+    53	) {
+    54	    val groups by viewModel.supportGroups.collectAsState()
+    55	    val posts by viewModel.communityPosts.collectAsState()
+    56	    val savedPosts by viewModel.savedPosts.collectAsState()
+    57	    val qaInquiries by viewModel.qaInquiries.collectAsState()
+    58	    val userProfile by viewModel.userProfile.collectAsState()
+    59	    var selectedTabIndex by remember { mutableStateOf(0) }
+    60	
+    61	    Scaffold(
+    62	        topBar = {
+    63	            TopAppBar(
+    64	                title = { Text("Community") },
+    65	                navigationIcon = {
+    66	                    val openDrawer = com.example.ui.navigation.LocalOpenDrawer.current
+    67	                    IconButton(onClick = openDrawer) {
+    68	                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+    69	                    }
+    70	                }
+    71	            )
+    72	        }
+    73	    ) { padding ->
+    74	        Column(modifier = Modifier.fillMaxSize().padding(padding), horizontalAlignment = Alignment.CenterHorizontally) {
+    75	            Box(modifier = Modifier.fillMaxSize().widthIn(max = 600.dp)) {
+    76	                Column(modifier = Modifier.fillMaxSize()) {
+    77	            ScrollableTabRow(selectedTabIndex = selectedTabIndex, edgePadding = 8.dp) {
+    78	                Tab(
+    79	                    selected = selectedTabIndex == 0,
+    80	                    onClick = { selectedTabIndex = 0 },
+    81	                    text = { Text("Feed") }
+    82	                )
+    83	                Tab(
+    84	                    selected = selectedTabIndex == 1,
+    85	                    onClick = { selectedTabIndex = 1 },
+    86	                    text = { Text("Groups") }
+    87	                )
+    88	                Tab(
+    89	                    selected = selectedTabIndex == 2,
+    90	                    onClick = { selectedTabIndex = 2 },
+    91	                    text = { Text("Medical Q&A") }
+    92	                )
+    93	                Tab(
+    94	                    selected = selectedTabIndex == 3,
+    95	                    onClick = { selectedTabIndex = 3 },
+    96	                    text = { Text("Map") }
+    97	                )
+    98	                Tab(
+    99	                    selected = selectedTabIndex == 4,
+   100	                    onClick = { selectedTabIndex = 4 },
+   101	                    text = { Text("Schedule") }
+   102	                )
+   103	            }
+   104	            when (selectedTabIndex) {
+   105	                0 -> {
+   106	                    CommunityFeed(
+   107	                        posts = posts, 
+   108	                        savedPosts = savedPosts,
+   109	                        onToggleSave = { viewModel.toggleSavedPost(it) },
+   110	                        onCreatePost = { viewModel.createCommunityPost(it) }
+   111	                    )
+   112	                }
+   113	                1 -> {
+   114	                    LazyColumn(
+   115	                        modifier = Modifier.fillMaxSize(),
+   116	                        contentPadding = PaddingValues(16.dp),
+   117	                        verticalArrangement = Arrangement.spacedBy(16.dp)
+   118	                    ) {
+   119	                        item {
+   120	                            Text("Anonymous Moderated Support Groups", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+   121	                            Text("Encrypted & safe environment for peer counseling.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+   122	                            Spacer(modifier = Modifier.height(8.dp))
+   123	                        }
+   124	                        items(items = groups, key = { it.id }) { group ->
+   125	                            GroupCard(
+   126	                                group = group,
+   127	                                onOpenGroupChat = { onNavigateToGroupChat(group.id) }
+   128	                            )
+   129	                        }
+   130	                    }
+   131	                }
+   132	                2 -> {
+   133	                    QAFeed(
+   134	                        inquiries = qaInquiries,
+   135	                        isMentor = userProfile?.isAvailableForMentorship == true,
+   136	                        onCreateInquiry = { viewModel.createQAInquiry(it) },
+   137	                        onAnswerInquiry = { id, answer -> viewModel.answerQAInquiry(id, answer) },
+   138	                        onVerifyAnswer = { qId, aId -> viewModel.verifyQAAnswer(qId, aId) }
+   139	                    )
+   140	                }
+   141	                3 -> {
+   142	                    CentersMap()
+   143	                }
+   144	                4 -> {
+   145	                    val sessions by viewModel.scheduledSessions.collectAsState()
+   146	                    ScheduleFeed(
+   147	                        sessions = sessions,
+   148	                        onToggleRsvp = { viewModel.toggleSessionRsvp(it) }
+   149	                    )
+   150	                }
+   151	            }
+   152	}
+   153	}
+   154	}
+   155	}
+   156	}
+   157	@OptIn(ExperimentalMaterial3Api::class)
+   158	@Composable
+   159	fun CommunityFeed(
+   160	    posts: List<CommunityPost>,
+   161	    savedPosts: Set<String>,
+   162	    onToggleSave: (String) -> Unit,
+   163	    onCreatePost: (String) -> Unit
+   164	) {
+   165	    var newPostText by remember { mutableStateOf("") }
+   166	    var selectedFilter by remember { mutableStateOf("All Phases") }
+   167	    var filterExpanded by remember { mutableStateOf(false) }
+   168	    var searchQuery by remember { mutableStateOf("") }
+   169	    
+   170	    val journeyPhases = listOf("All Phases", "Pre-transplant", "Waitlisted", "Post-transplant recovery", "Long-term survivor", "Caregiver")
+   171	    val filteredPosts = remember(posts, selectedFilter, searchQuery) {
+   172	        posts.filter { post ->
+   173	            val phaseMatch = selectedFilter == "All Phases" || post.authorJourneyPhase == selectedFilter
+   174	            val searchMatch = searchQuery.isBlank() || 
+   175	                post.content.contains(searchQuery, ignoreCase = true) || 
+   176	                post.authorName.contains(searchQuery, ignoreCase = true)
+   177	            phaseMatch && searchMatch
+   178	        }
+   179	    }
+   180	    
+   181	    Column(modifier = Modifier.fillMaxSize()) {
+   182	        Card(
+   183	            modifier = Modifier.fillMaxWidth().padding(16.dp),
+   184	            shape = RoundedCornerShape(24.dp),
+   185	            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+   186	        ) {
+   187	            Column(modifier = Modifier.padding(16.dp)) {
+   188	                OutlinedTextField(
+   189	                    value = searchQuery,
+   190	                    onValueChange = { searchQuery = it },
+   191	                    placeholder = { Text("Search posts or members...") },
+   192	                    leadingIcon = { Icon(androidx.compose.material.icons.Icons.Default.Search, contentDescription = "Search") },
+   193	                    modifier = Modifier.fillMaxWidth(),
+   194	                    shape = RoundedCornerShape(24.dp),
+   195	                    singleLine = true
+   196	                )
+   197	                Spacer(modifier = Modifier.height(16.dp))
+   198	                OutlinedTextField(
+   199	                    value = newPostText,
+   200	                    onValueChange = { newPostText = it },
+   201	                    placeholder = { Text("Share your experience or ask a question...") },
+   202	                    modifier = Modifier.fillMaxWidth(),
+   203	                    shape = RoundedCornerShape(24.dp),
+   204	                    minLines = 3
+   205	                )
+   206	                Spacer(modifier = Modifier.height(8.dp))
+   207	                Row(
+   208	                    modifier = Modifier.fillMaxWidth(),
+   209	                    horizontalArrangement = Arrangement.SpaceBetween,
+   210	                    verticalAlignment = Alignment.CenterVertically
+   211	                ) {
+   212	                    ExposedDropdownMenuBox(
+   213	                        expanded = filterExpanded,
+   214	                        onExpandedChange = { filterExpanded = !filterExpanded },
+   215	                        modifier = Modifier.weight(1f).padding(end = 8.dp)
+   216	                    ) {
+   217	                        OutlinedTextField(
+   218	                            value = selectedFilter,
+   219	                            onValueChange = {},
+   220	                            readOnly = true,
+   221	                            label = { Text("Filter by Phase") },
+   222	                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = filterExpanded) },
+   223	                            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
+   224	                            shape = RoundedCornerShape(24.dp)
+   225	                        )
+   226	                        ExposedDropdownMenu(
+   227	                            expanded = filterExpanded,
+   228	                            onDismissRequest = { filterExpanded = false }
+   229	                        ) {
+   230	                            journeyPhases.forEach { phase ->
+   231	                                DropdownMenuItem(
+   232	                                    text = { Text(phase) },
+   233	                                    onClick = {
+   234	                                        selectedFilter = phase
+   235	                                        filterExpanded = false
+   236	                                    }
+   237	                                )
+   238	                            }
+   239	                        }
+   240	                    }
+   241	                    val context = androidx.compose.ui.platform.LocalContext.current
+   242	                    Button(
+   243	                        onClick = {
+   244	                            if (newPostText.trim().length < 5) {
+   245	                                android.widget.Toast.makeText(context, "Post must be at least 5 characters.", android.widget.Toast.LENGTH_SHORT).show()
+   246	                            } else {
+   247	                                onCreatePost(newPostText.trim())
+   248	                                newPostText = ""
+   249	                            }
+   250	                        },
+   251	                        shape = RoundedCornerShape(24.dp),
+   252	                        modifier = Modifier.height(56.dp)
+   253	                    ) {
+   254	                        Text("Post")
+   255	                    }
+   256	                }
+   257	            }
+   258	        }
+   259	        
+   260	        LazyColumn(
+   261	            modifier = Modifier.fillMaxSize(),
+   262	            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+   263	            verticalArrangement = Arrangement.spacedBy(12.dp)
+   264	        ) {
+   265	            items(items = filteredPosts, key = { it.id }) { post ->
+   266	                PostCard(
+   267	                    post = post,
+   268	                    isSaved = savedPosts.contains(post.id),
+   269	                    onToggleSave = { onToggleSave(post.id) }
+   270	                )
+   271	            }
+   272	        }
+   273	    }
+   274	}
+   275	
+   276	@Composable
+   277	fun PostCard(
+   278	    post: CommunityPost,
+   279	    isSaved: Boolean = false,
+   280	    onToggleSave: (() -> Unit)? = null
+   281	) {
+   282	    Card(
+   283	        modifier = Modifier.fillMaxWidth(),
+   284	        shape = RoundedCornerShape(24.dp),
+   285	        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+   286	    ) {
+   287	        Column(modifier = Modifier.padding(16.dp)) {
+   288	            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+   289	                Box(
+   290	                    modifier = Modifier
+   291	                        .size(40.dp)
+   292	                        .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(20.dp)),
+   293	                    contentAlignment = Alignment.Center
+   294	                ) {
+   295	                    Text(
+   296	                        text = post.authorName.take(1).uppercase(),
+   297	                        style = MaterialTheme.typography.titleMedium,
+   298	                        color = MaterialTheme.colorScheme.onPrimaryContainer
+   299	                    )
+   300	                }
+   301	                Spacer(modifier = Modifier.width(12.dp))
+   302	                Column(modifier = Modifier.weight(1f)) {
+   303	                    Text(post.authorName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+   304	                    Text(
+   305	                        SimpleDateFormat("MMM dd, yyyy h:mm a", Locale.getDefault()).format(Date(post.timestamp)),
+   306	                        style = MaterialTheme.typography.bodySmall,
+   307	                        color = MaterialTheme.colorScheme.onSurfaceVariant
+   308	                    )
+   309	                }
+   310	                if (onToggleSave != null) {
+   311	                    IconButton(onClick = onToggleSave) {
+   312	                        Icon(
+   313	                            imageVector = if (isSaved) androidx.compose.material.icons.Icons.Default.Bookmark else androidx.compose.material.icons.Icons.Default.BookmarkBorder,
+   314	                            contentDescription = if (isSaved) "Unsave" else "Save",
+   315	                            tint = MaterialTheme.colorScheme.primary
+   316	                        )
+   317	                    }
+   318	                }
+   319	            }
+   320	            Spacer(modifier = Modifier.height(8.dp))
+   321	            Surface(
+   322	                color = MaterialTheme.colorScheme.secondaryContainer,
+   323	                shape = RoundedCornerShape(8.dp)
+   324	            ) {
+   325	                Text(
+   326	                    text = post.authorJourneyPhase,
+   327	                    style = MaterialTheme.typography.labelSmall,
+   328	                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+   329	                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+   330	                )
+   331	            }
+   332	            Spacer(modifier = Modifier.height(12.dp))
+   333	            Text(post.content, style = MaterialTheme.typography.bodyMedium)
+   334	        }
+   335	    }
+   336	}
+   337	
+   338	@Composable
+   339	fun GroupCard(
+   340	    group: SupportGroup,
+   341	    onOpenGroupChat: () -> Unit
+   342	) {
+   343	    Card(
+   344	        modifier = Modifier.fillMaxWidth(),
+   345	        shape = RoundedCornerShape(20.dp),
+   346	        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+   347	        elevation = CardDefaults.cardElevation(2.dp)
+   348	    ) {
+   349	        Column(modifier = Modifier.padding(16.dp)) {
+   350	            Row(
+   351	                verticalAlignment = Alignment.CenterVertically,
+   352	                horizontalArrangement = Arrangement.SpaceBetween,
+   353	                modifier = Modifier.fillMaxWidth()
+   354	            ) {
+   355	                Surface(
+   356	                    color = MaterialTheme.colorScheme.primaryContainer,
+   357	                    shape = RoundedCornerShape(8.dp)
+   358	                ) {
+   359	                    Text(
+   360	                        text = group.category,
+   361	                        style = MaterialTheme.typography.labelMedium,
+   362	                        fontWeight = FontWeight.Bold,
+   363	                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+   364	                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+   365	                    )
+   366	                }
+   367	
+   368	                Row(verticalAlignment = Alignment.CenterVertically) {
+   369	                    Icon(
+   370	                        imageVector = Icons.Default.VisibilityOff,
+   371	                        contentDescription = "Anonymous Friendly",
+   372	                        modifier = Modifier.size(16.dp),
+   373	                        tint = MaterialTheme.colorScheme.tertiary
+   374	                    )
+   375	                    Spacer(Modifier.width(4.dp))
+   376	                    Text(
+   377	                        "Anonymous Enabled",
+   378	                        style = MaterialTheme.typography.labelSmall,
+   379	                        color = MaterialTheme.colorScheme.tertiary,
+   380	                        fontWeight = FontWeight.SemiBold
+   381	                    )
+   382	                }
+   383	            }
+   384	
+   385	            Spacer(Modifier.height(10.dp))
+   386	
+   387	            Text(
+   388	                text = group.name,
+   389	                style = MaterialTheme.typography.titleMedium,
+   390	                fontWeight = FontWeight.Bold
+   391	            )
+   392	
+   393	            Spacer(Modifier.height(6.dp))
+   394	
+   395	            Text(
+   396	                text = group.description,
+   397	                style = MaterialTheme.typography.bodyMedium,
+   398	                color = MaterialTheme.colorScheme.onSurfaceVariant
+   399	            )
+   400	
+   401	            Spacer(Modifier.height(12.dp))
+   402	
+   403	            // Medical Moderator Badge
+   404	            Surface(
+   405	                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+   406	                shape = RoundedCornerShape(12.dp),
+   407	                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+   408	            ) {
+   409	                Row(
+   410	                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+   411	                    verticalAlignment = Alignment.CenterVertically
+   412	                ) {
+   413	                    Icon(
+   414	                        imageVector = Icons.Default.Verified,
+   415	                        contentDescription = "Verified Clinical Moderator",
+   416	                        tint = MaterialTheme.colorScheme.primary,
+   417	                        modifier = Modifier.size(18.dp)
+   418	                    )
+   419	                    Spacer(Modifier.width(6.dp))
+   420	                    Column {
+   421	                        Text(
+   422	                            text = "Clinical Overseer: ${group.moderatedBy}",
+   423	                            style = MaterialTheme.typography.labelMedium,
+   424	                            fontWeight = FontWeight.Bold,
+   425	                            color = MaterialTheme.colorScheme.primary
+   426	                        )
+   427	                        Text(
+   428	                            text = group.moderatorTitle,
+   429	                            style = MaterialTheme.typography.labelSmall,
+   430	                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+   431	                        )
+   432	                    }
+   433	                }
+   434	            }
+   435	
+   436	            Spacer(Modifier.height(16.dp))
+   437	
+   438	            Button(
+   439	                onClick = onOpenGroupChat,
+   440	                modifier = Modifier.fillMaxWidth(),
+   441	                shape = RoundedCornerShape(20.dp),
+   442	                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+   443	            ) {
+   444	                Icon(
+   445	                    imageVector = Icons.Default.MedicalServices,
+   446	                    contentDescription = null,
+   447	                    modifier = Modifier.size(18.dp)
+   448	                )
+   449	                Spacer(Modifier.width(8.dp))
+   450	                Text("Enter Moderated Group Chat", fontWeight = FontWeight.Bold)
+   451	            }
+   452	}
+   453	}
+   454	}
+   455	}
+   456	}
+   457	@OptIn(ExperimentalMaterial3Api::class)
+   458	@Composable
+   459	fun QAFeed(
+   460	    inquiries: List<com.example.data.model.QAInquiry>,
+   461	    isMentor: Boolean,
+   462	    onCreateInquiry: (String) -> Unit,
+   463	    onAnswerInquiry: (String, String) -> Unit,
+   464	    onVerifyAnswer: (String, String) -> Unit
+   465	) {
+   466	    var newQuestionText by remember { mutableStateOf("") }
+   467	
+   468	    Column(modifier = Modifier.fillMaxSize()) {
+   469	        Card(
+   470	            modifier = Modifier.fillMaxWidth().padding(16.dp),
+   471	            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+   472	            shape = RoundedCornerShape(24.dp)
+   473	        ) {
+   474	            Column(modifier = Modifier.padding(16.dp)) {
+   475	                OutlinedTextField(
+   476	                    value = newQuestionText,
+   477	                    onValueChange = { newQuestionText = it },
+   478	                    placeholder = { Text("Ask a medical question...") },
+   479	                    modifier = Modifier.fillMaxWidth(),
+   480	                    shape = RoundedCornerShape(24.dp),
+   481	                    minLines = 3,
+   482	                    maxLines = 5
+   483	                )
+   484	                Spacer(modifier = Modifier.height(16.dp))
+   485	                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+   486	                    val context = androidx.compose.ui.platform.LocalContext.current
+   487	                    Button(
+   488	                        onClick = {
+   489	                            if (newQuestionText.trim().length < 10) {
+   490	                                android.widget.Toast.makeText(context, "Question must be at least 10 characters.", android.widget.Toast.LENGTH_SHORT).show()
+   491	                            } else {
+   492	                                onCreateInquiry(newQuestionText.trim())
+   493	                                newQuestionText = ""
+   494	                            }
+   495	                        },
+   496	                        shape = RoundedCornerShape(24.dp),
+   497	                        modifier = Modifier.height(56.dp)
+   498	                    ) {
+   499	                        Text("Post Question")
+   500	                    }
+   501	                }
+   502	            }
+   503	        }
+   504	        
+   505	        LazyColumn(
+   506	            modifier = Modifier.fillMaxSize(),
+   507	            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+   508	            verticalArrangement = Arrangement.spacedBy(12.dp)
+   509	        ) {
+   510	            items(items = inquiries, key = { it.id }) { inquiry ->
+   511	                QACard(
+   512	                    inquiry = inquiry,
+   513	                    isMentor = isMentor,
+   514	                    onAnswer = { onAnswerInquiry(inquiry.id, it) },
+   515	                    onVerify = { aId -> onVerifyAnswer(inquiry.id, aId) }
+   516	                )
+   517	            }
+   518	        }
+   519	    }
+   520	}
+   521	
+   522	@Composable
+   523	fun QACard(
+   524	    inquiry: com.example.data.model.QAInquiry,
+   525	    isMentor: Boolean,
+   526	    onAnswer: (String) -> Unit,
+   527	    onVerify: (String) -> Unit
+   528	) {
+   529	    var showAnswerField by remember { mutableStateOf(false) }
+   530	    var answerText by remember { mutableStateOf("") }
+   531	
+   532	    Card(
+   533	        modifier = Modifier.fillMaxWidth(),
+   534	        shape = RoundedCornerShape(24.dp),
+   535	        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+   536	    ) {
+   537	        Column(modifier = Modifier.padding(16.dp)) {
+   538	            Text(inquiry.question, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+   539	            Spacer(modifier = Modifier.height(4.dp))
+   540	            Text(
+   541	                "Asked by ${inquiry.authorName} • ${SimpleDateFormat("MMM dd", Locale.getDefault()).format(Date(inquiry.timestamp))}",
+   542	                style = MaterialTheme.typography.labelSmall,
+   543	                color = MaterialTheme.colorScheme.onSurfaceVariant
+   544	            )
+   545	            Spacer(modifier = Modifier.height(16.dp))
+   546	            
+   547	            inquiry.answers.forEach { answer ->
+   548	                Surface(
+   549	                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+   550	                    color = if (answer.isVerified) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+   551	                    shape = RoundedCornerShape(16.dp)
+   552	                ) {
+   553	                    Column(modifier = Modifier.padding(12.dp)) {
+   554	                        Row(verticalAlignment = Alignment.CenterVertically) {
+   555	                            Text(answer.authorName, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+   556	                            if (answer.isVerified) {
+   557	                                Spacer(modifier = Modifier.width(4.dp))
+   558	                                Icon(Icons.Default.Verified, contentDescription = "Verified", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+   559	                                Text(" Verified", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+   560	                            }
+   561	                        }
+   562	                        Spacer(modifier = Modifier.height(4.dp))
+   563	                        Text(answer.content, style = MaterialTheme.typography.bodyMedium)
+   564	                        
+   565	                        if (isMentor && !answer.isVerified) {
+   566	                            Spacer(modifier = Modifier.height(8.dp))
+   567	                            TextButton(onClick = { onVerify(answer.id) }) {
+   568	                                Text("Mark as Verified")
+   569	                            }
+   570	                        }
+   571	                    }
+   572	                }
+   573	            }
+   574	
+   575	            if (showAnswerField) {
+   576	                OutlinedTextField(
+   577	                    value = answerText,
+   578	                    onValueChange = { answerText = it },
+   579	                    placeholder = { Text("Your answer...") },
+   580	                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+   581	                    shape = RoundedCornerShape(16.dp)
+   582	                )
+   583	                Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.End) {
+   584	                    TextButton(onClick = { showAnswerField = false; answerText = "" }) {
+   585	                        Text("Cancel")
+   586	                    }
+   587	                    Button(onClick = { 
+   588	                        if (answerText.isNotBlank()) {
+   589	                            onAnswer(answerText)
+   590	                            showAnswerField = false
+   591	                            answerText = ""
+   592	                        }
+   593	                    }) {
+   594	                        Text("Submit")
+   595	                    }
+   596	                }
+   597	            } else {
+   598	                TextButton(onClick = { showAnswerField = true }, modifier = Modifier.padding(top = 8.dp)) {
+   599	                    Text("Add an Answer")
+   600	                }
+   601	            }
+   602	        }
+   603	            }
+   604	        }
+   605	    }
+   606	}
+   607	
+   608	@Composable
+   609	fun CentersMap() {
+   610	    val defaultLocation = LatLng(37.7749, -122.4194) // Default to SF
+   611	    val cameraPositionState = rememberCameraPositionState {
+   612	        position = CameraPosition.fromLatLngZoom(defaultLocation, 10f)
+   613	    }
+   614	
+   615	    val centers = listOf(
+   616	        Pair(LatLng(37.7694, -122.4862), "UCSF Medical Center - Support Group"),
+   617	        Pair(LatLng(37.4300, -122.1700), "Stanford Hospital - Patient Meetup"),
+   618	        Pair(LatLng(37.7944, -122.4000), "Community Support Group A"),
+   619	        Pair(LatLng(37.8044, -122.2711), "Oakland Transplant Survivor Event"),
+   620	        Pair(LatLng(37.3382, -121.8863), "San Jose Heart Health Walk")
+   621	    )
+   622	
+   623	    Column(modifier = Modifier.fillMaxSize()) {
+   624	        Card(
+   625	            modifier = Modifier.fillMaxWidth().padding(16.dp),
+   626	            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+   627	            shape = RoundedCornerShape(16.dp)
+   628	        ) {
+   629	            Text(
+   630	                "Find nearby transplant centers, support groups, and community events on the map below.",
+   631	                modifier = Modifier.padding(16.dp),
+   632	                style = MaterialTheme.typography.bodyMedium,
+   633	                color = MaterialTheme.colorScheme.onPrimaryContainer
+   634	            )
+   635	        }
+   636	        
+   637	        Card(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp).padding(bottom = 16.dp), shape = RoundedCornerShape(24.dp)) {
+   638	            GoogleMap(
+   639	                modifier = Modifier.fillMaxSize(),
+   640	                cameraPositionState = cameraPositionState
+   641	            ) {
+   642	                centers.forEach { (latLng, title) ->
+   643	                    Marker(
+   644	                        state = MarkerState(position = latLng),
+   645	                        title = title,
+   646	                        snippet = "Transplant Support & Events"
+   647	                    )
+   648	                }
+   649	            }
+   650	        }
+   651	    }
+   652	}
+   653	
+   654	@Composable
+   655	fun ScheduleFeed(
+   656	    sessions: List<com.example.data.model.ScheduledSession>,
+   657	    onToggleRsvp: (String) -> Unit
+   658	) {
+   659	    LazyColumn(
+   660	        modifier = Modifier.fillMaxSize(),
+   661	        contentPadding = PaddingValues(16.dp),
+   662	        verticalArrangement = Arrangement.spacedBy(16.dp)
+   663	    ) {
+   664	        item {
+   665	            Text("Upcoming Moderated Sessions", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+   666	            Text("Set reminders for upcoming clinical support groups and peer events.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+   667	            Spacer(modifier = Modifier.height(8.dp))
+   668	        }
+   669	        
+   670	        items(items = sessions, key = { it.id }) { session ->
+   671	            ScheduledSessionCard(session = session, onToggleRsvp = onToggleRsvp)
+   672	        }
+   673	    }
+   674	}
+   675	
+   676	@Composable
+   677	fun ScheduledSessionCard(
+   678	    session: com.example.data.model.ScheduledSession,
+   679	    onToggleRsvp: (String) -> Unit
+   680	) {
+   681	    val formattedTime = remember(session.startTime) {
+   682	        SimpleDateFormat("EEE, MMM d • h:mm a", Locale.getDefault()).format(Date(session.startTime))
+   683	    }
+   684	    
+   685	    Card(
+   686	        modifier = Modifier.fillMaxWidth(),
+   687	        shape = RoundedCornerShape(20.dp),
+   688	        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+   689	        elevation = CardDefaults.cardElevation(2.dp)
+   690	    ) {
+   691	        Column(modifier = Modifier.padding(16.dp)) {
+   692	            Row(
+   693	                verticalAlignment = Alignment.CenterVertically,
+   694	                horizontalArrangement = Arrangement.SpaceBetween,
+   695	                modifier = Modifier.fillMaxWidth()
+   696	            ) {
+   697	                Surface(
+   698	                    color = MaterialTheme.colorScheme.tertiaryContainer,
+   699	                    shape = RoundedCornerShape(8.dp)
+   700	                ) {
+   701	                    Text(
+   702	                        text = formattedTime,
+   703	                        style = MaterialTheme.typography.labelMedium,
+   704	                        fontWeight = FontWeight.Bold,
+   705	                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+   706	                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+   707	                    )
+   708	                }
+   709	
+   710	                Row(verticalAlignment = Alignment.CenterVertically) {
+   711	                    Icon(
+   712	                        imageVector = androidx.compose.material.icons.Icons.Default.MedicalServices,
+   713	                        contentDescription = "Medical Professional",
+   714	                        modifier = Modifier.size(16.dp),
+   715	                        tint = MaterialTheme.colorScheme.primary
+   716	                    )
+   717	                    Spacer(Modifier.width(4.dp))
+   718	                    Text(
+   719	                        "Moderated",
+   720	                        style = MaterialTheme.typography.labelSmall,
+   721	                        color = MaterialTheme.colorScheme.primary,
+   722	                        fontWeight = FontWeight.SemiBold
+   723	                    )
+   724	                }
+   725	            }
+   726	
+   727	            Spacer(Modifier.height(10.dp))
+   728	
+   729	            Text(
+   730	                text = session.title,
+   731	                style = MaterialTheme.typography.titleMedium,
+   732	                fontWeight = FontWeight.Bold
+   733	            )
+   734	
+   735	            Spacer(Modifier.height(4.dp))
+   736	
+   737	            Text(
+   738	                text = "Hosted by ${session.moderatorName}",
+   739	                style = MaterialTheme.typography.labelMedium,
+   740	                color = MaterialTheme.colorScheme.primary
+   741	            )
+   742	
+   743	            Spacer(Modifier.height(6.dp))
+   744	
+   745	            Text(
+   746	                text = session.description,
+   747	                style = MaterialTheme.typography.bodyMedium,
+   748	                color = MaterialTheme.colorScheme.onSurfaceVariant
+   749	            )
+   750	
+   751	            Spacer(Modifier.height(12.dp))
+   752	
+   753	            Row(
+   754	                modifier = Modifier.fillMaxWidth(),
+   755	                horizontalArrangement = Arrangement.SpaceBetween,
+   756	                verticalAlignment = Alignment.CenterVertically
+   757	            ) {
+   758	                Text(
+   759	                    text = "${session.attendeesCount} attending • ${session.durationMinutes} min",
+   760	                    style = MaterialTheme.typography.labelSmall,
+   761	                    color = MaterialTheme.colorScheme.onSurfaceVariant
+   762	                )
+   763	                
+   764	                Button(
+   765	                    onClick = { onToggleRsvp(session.id) },
+   766	                    shape = RoundedCornerShape(20.dp),
+   767	                    colors = ButtonDefaults.buttonColors(
+   768	                        containerColor = if (session.isRsvped) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
+   769	                    )
+   770	                ) {
+   771	                    Icon(
+   772	                        imageVector = if (session.isRsvped) androidx.compose.material.icons.Icons.Default.Check else androidx.compose.material.icons.Icons.Default.Event,
+   773	                        contentDescription = null,
+   774	                        modifier = Modifier.size(18.dp)
+   775	                    )
+   776	                    Spacer(Modifier.width(8.dp))
+   777	                    Text(if (session.isRsvped) "RSVP Confirmed" else "RSVP & Remind", fontWeight = FontWeight.Bold)
+   778	                }

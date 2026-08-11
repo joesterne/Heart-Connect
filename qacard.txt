@@ -1,0 +1,86 @@
+    isMentor: Boolean,
+    onAnswer: (String) -> Unit,
+    onVerify: (String) -> Unit
+) {
+    var showAnswerField by remember { mutableStateOf(false) }
+    var answerText by remember { mutableStateOf("") }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(inquiry.question, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                "Asked by ${inquiry.authorName} • ${SimpleDateFormat("MMM dd", Locale.getDefault()).format(Date(inquiry.timestamp))}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            inquiry.answers.forEach { answer ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    color = if (answer.isVerified) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(answer.authorName, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            if (answer.isVerified) {
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(Icons.Default.Verified, contentDescription = "Verified", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                                Text(" Verified", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(answer.content, style = MaterialTheme.typography.bodyMedium)
+                        
+                        if (isMentor && !answer.isVerified) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            TextButton(onClick = { onVerify(answer.id) }) {
+                                Text("Mark as Verified")
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (showAnswerField) {
+                OutlinedTextField(
+                    value = answerText,
+                    onValueChange = { answerText = it },
+                    placeholder = { Text("Your answer...") },
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    shape = RoundedCornerShape(16.dp)
+                )
+                Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = { showAnswerField = false; answerText = "" }) {
+                        Text("Cancel")
+                    }
+                    Button(onClick = { 
+                        if (answerText.isNotBlank()) {
+                            onAnswer(answerText)
+                            showAnswerField = false
+                            answerText = ""
+                        }
+                    }) {
+                        Text("Submit")
+                    }
+                }
+            } else {
+                TextButton(onClick = { showAnswerField = true }, modifier = Modifier.padding(top = 8.dp)) {
+                    Text("Add an Answer")
+                }
+            }
+        }
+            }
+        }
+    }
+}
+
+@Composable
+fun CentersMap() {
+    val defaultLocation = LatLng(37.7749, -122.4194) // Default to SF
