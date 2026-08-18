@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
@@ -55,7 +56,7 @@ fun AICounselingScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     contentPadding = PaddingValues(16.dp),
                     reverseLayout = false
                 ) {
-                    items(chatHistory) { content ->
+                    itemsIndexed(items = chatHistory, key = { index, _ -> index }) { _, content ->
                         val isUser = content.role == "user"
                         ChatBubble(text = content.parts.firstOrNull()?.text ?: "", isUser = isUser)
                         Spacer(modifier = Modifier.height(8.dp))

@@ -31,8 +31,8 @@ fun FavoritesScreen(
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     
-    val savedPostsList = posts.filter { savedPosts.contains(it.id) }
-    val savedEduList = educationalContents.filter { savedEducationalContent.contains(it.id) }
+    val savedPostsList = remember(posts, savedPosts) { posts.filter { savedPosts.contains(it.id) } }
+    val savedEduList = remember(educationalContents, savedEducationalContent) { educationalContents.filter { savedEducationalContent.contains(it.id) } }
 
     Scaffold(
         topBar = {

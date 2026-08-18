@@ -1,5 +1,9 @@
 package com.example.data.model
 
+import androidx.compose.runtime.Immutable
+
+
+@Immutable
 data class DailyLog(
     val id: String = "",
     val timestamp: Long = System.currentTimeMillis(),
@@ -8,6 +12,7 @@ data class DailyLog(
     val notes: String = ""
 )
 
+@Immutable
 data class Badge(
     val id: String,
     val name: String,
@@ -15,6 +20,7 @@ data class Badge(
     val iconResName: String = "Star" // Simplified mapping for compose icons
 )
 
+@Immutable
 data class Profile(
     val id: String = "",
     val name: String = "",
@@ -28,6 +34,7 @@ data class Profile(
     val badges: List<Badge> = emptyList()
 )
 
+@Immutable
 data class EducationalContent(
     val id: String,
     val title: String,
@@ -36,6 +43,7 @@ data class EducationalContent(
     val duration: String
 )
 
+@Immutable
 data class SupportGroup(
     val id: String = "",
     val name: String = "",
@@ -48,6 +56,7 @@ data class SupportGroup(
     val members: List<String> = emptyList()
 )
 
+@Immutable
 data class ChatMessage(
     val id: String = "",
     val groupId: String = "",
@@ -61,6 +70,7 @@ data class ChatMessage(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+@Immutable
 data class ScheduledSession(
     val id: String = "",
     val groupId: String = "",
@@ -73,6 +83,7 @@ data class ScheduledSession(
     val isRsvped: Boolean = false
 )
 
+@Immutable
 data class CommunityPost(
     val id: String = "",
     val authorId: String = "",
@@ -82,6 +93,7 @@ data class CommunityPost(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+@Immutable
 data class QAAnswer(
     val id: String = "",
     val authorId: String = "",
@@ -91,6 +103,7 @@ data class QAAnswer(
     val isVerified: Boolean = false
 )
 
+@Immutable
 data class QAInquiry(
     val id: String = "",
     val authorId: String = "",
