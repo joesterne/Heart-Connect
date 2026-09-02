@@ -2,6 +2,11 @@
 
 This document tracks the recent improvements, bug fixes, and performance optimizations made to the Heart Connect Android application.
 
+## ⚡ Performance & Security Optimizations
+* **Bulk Database Transactions**: Optimized SQLite `INSERT` statements in `DailyLogDao` and `LogRepository` to use batch operations (`insertLogs`), drastically reducing database I/O latency during backup restorations.
+* **Release Build Shrinking (R8)**: Enabled R8 minification (`isMinifyEnabled = true`) and resource shrinking in the Gradle release configuration to reduce APK size and obfuscate code against reverse engineering.
+* **Asynchronous Cryptography**: Refactored `SecureStorageRepository` to execute AES-GCM file encryption and decryption on background threads (`Dispatchers.IO`) using Kotlin Coroutines, preventing Main Thread blocking and potential ANRs.
+
 ## 📓 Enhanced Daily Journaling & Trend Tracking
 * **Interactive Mood Logging**: Upgraded the daily tracking feature with an intuitive, emoji-based horizontal mood selector, making it more expressive and easier for users to log their emotional state.
 * **Room Database Persistence**: Fully migrated local data storage for daily logs from `SharedPreferences` to a robust, persistent **Room Database**. Implemented complete data models (`@Entity`), Data Access Objects (`DailyLogDao`), and a Repository layer for reactive, offline-first data management.
