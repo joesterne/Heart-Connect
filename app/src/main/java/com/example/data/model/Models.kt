@@ -1,11 +1,14 @@
 package com.example.data.model
 
 import androidx.compose.runtime.Immutable
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 
 
+@Entity(tableName = "daily_logs")
 @Immutable
 data class DailyLog(
-    val id: String = "",
+    @PrimaryKey val id: String = "",
     val timestamp: Long = System.currentTimeMillis(),
     val mood: Int = 3, // 1-5 scale (1: terrible, 5: great)
     val symptoms: String = "",

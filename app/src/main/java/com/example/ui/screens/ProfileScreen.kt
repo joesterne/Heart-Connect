@@ -32,6 +32,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -43,6 +47,12 @@ import com.example.util.AudioRecorderHelper
 import kotlinx.coroutines.launch
 
 import com.example.viewmodel.AppViewModel
+import com.patrykandpatrick.vico.compose.chart.Chart
+import com.patrykandpatrick.vico.compose.chart.line.lineChart
+import com.patrykandpatrick.vico.compose.axis.horizontal.rememberBottomAxis
+import com.patrykandpatrick.vico.compose.axis.vertical.rememberStartAxis
+import com.patrykandpatrick.vico.core.entry.FloatEntry
+import com.patrykandpatrick.vico.core.entry.entryModelOf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -430,13 +440,26 @@ fun DailyTrackerSection(viewModel: AppViewModel, userProfile: com.example.data.m
             Text("Daily Mood & Symptoms Tracker", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
             
             if (isAddingLog) {
-                Text("Mood (1-5): ${mood.toInt()}", style = MaterialTheme.typography.bodyMedium)
-                Slider(
-                    value = mood,
-                    onValueChange = { mood = it },
-                    valueRange = 1f..5f,
-                    steps = 3
-                )
+                Text("How are you feeling?", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    val emojis = listOf(1 to "😞", 2 to "😕", 3 to "😐", 4 to "🙂", 5 to "😄")
+                    emojis.forEach { (value, emoji) ->
+                        val isSelected = mood.toInt() == value
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
+                                .clickable { mood = value.toFloat() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = emoji, fontSize = 24.sp)
+                        }
+                    }
+                }
                 
                 OutlinedTextField(
                     value = symptoms,
@@ -534,7 +557,8 @@ fun DailyTrackerSection(viewModel: AppViewModel, userProfile: com.example.data.m
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(date, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("Mood: ${log.mood}/5", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            val emoji = when (log.mood) { 1 -> "😞"; 2 -> "😕"; 3 -> "😐"; 4 -> "🙂"; 5 -> "😄"; else -> "😐" }
+                            Text(emoji, style = MaterialTheme.typography.titleMedium)
                         }
                         if (log.symptoms.isNotBlank()) {
                             Spacer(modifier = Modifier.height(4.dp))
@@ -586,31 +610,33 @@ fun MoodTrendChart(logs: List<com.example.data.model.DailyLog>) {
         )
         Spacer(modifier = Modifier.height(16.dp))
         
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(80.dp),
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            val displayLogs = remember(recentLogs) {
-                val maxItems = 30
-                recentLogs.takeLast(maxItems)
-            }
-            displayLogs.forEach { log ->
-                val color = when(log.mood) {
-                    5, 4 -> MaterialTheme.colorScheme.primary
-                    3 -> MaterialTheme.colorScheme.secondary
-                    else -> MaterialTheme.colorScheme.error
+        val chartEntryModel = remember(recentLogs) {
+            val maxItems = 30
+            val displayLogs = recentLogs.takeLast(maxItems)
+            if (displayLogs.isNotEmpty()) {
+                val entries: List<FloatEntry> = displayLogs.mapIndexed { index, log -> 
+                    FloatEntry(x = index.toFloat(), y = log.mood.toFloat()) 
                 }
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 2.dp)
-                        .fillMaxHeight(log.mood / 5f)
-                        .background(color, RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
-                )
+                entryModelOf(entries)
+            } else {
+                null
             }
+        }
+        
+        if (chartEntryModel != null) {
+            Chart(
+                chart = lineChart(),
+                model = chartEntryModel,
+                startAxis = rememberStartAxis(
+                    valueFormatter = { value, _ -> value.toInt().toString() }
+                ),
+                bottomAxis = rememberBottomAxis(
+                    valueFormatter = { _, _ -> "" }
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp)
+            )
         }
     }
 }

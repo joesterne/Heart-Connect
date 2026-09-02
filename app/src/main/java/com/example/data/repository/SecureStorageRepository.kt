@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.security.crypto.EncryptedFile
 import androidx.security.crypto.MasterKey
 import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class SecureStorageRepository(private val context: Context) {
 
@@ -11,7 +13,7 @@ class SecureStorageRepository(private val context: Context) {
         .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
         .build()
 
-    fun saveEncryptedFile(filename: String, content: String) {
+    suspend fun saveEncryptedFile(filename: String, content: String) = withContext(Dispatchers.IO) {
         val file = File(context.filesDir, filename)
         if (file.exists()) {
             file.delete()
@@ -29,10 +31,10 @@ class SecureStorageRepository(private val context: Context) {
         }
     }
 
-    fun readEncryptedFile(filename: String): String? {
+    suspend fun readEncryptedFile(filename: String): String? = withContext(Dispatchers.IO) {
         val file = File(context.filesDir, filename)
         if (!file.exists()) {
-            return null
+            return@withContext null
         }
 
         val encryptedFile = EncryptedFile.Builder(
@@ -42,7 +44,7 @@ class SecureStorageRepository(private val context: Context) {
             EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB
         ).build()
 
-        return try {
+        return@withContext try {
             encryptedFile.openFileInput().use { inputStream ->
                 val bytes = inputStream.readBytes()
                 String(bytes, Charsets.UTF_8)
@@ -53,7 +55,7 @@ class SecureStorageRepository(private val context: Context) {
         }
     }
     
-    fun deleteEncryptedFile(filename: String) {
+    suspend fun deleteEncryptedFile(filename: String) = withContext(Dispatchers.IO) {
         val file = File(context.filesDir, filename)
         if (file.exists()) {
             file.delete()

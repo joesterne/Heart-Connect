@@ -1,10 +1,8 @@
-with open("app/build.gradle.kts", "r") as f:
-    lines = f.readlines()
+import re
+with open('app/build.gradle.kts', 'r') as f:
+    content = f.read()
 
-for i, line in enumerate(lines):
-    if "dependencies {" in line:
-        lines.insert(i + 1, '    implementation(libs.vico.compose)\n    implementation(libs.vico.compose.m3)\n')
-        break
+content = content.replace("isMinifyEnabled = false", "isMinifyEnabled = true\n      isShrinkResources = true")
 
-with open("app/build.gradle.kts", "w") as f:
-    f.writelines(lines)
+with open('app/build.gradle.kts', 'w') as f:
+    f.write(content)

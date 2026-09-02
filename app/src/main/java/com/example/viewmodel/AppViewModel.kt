@@ -28,6 +28,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val firestoreRepository = FirestoreRepository(application)
     private val secureStorageRepository = SecureStorageRepository(application)
     private val geminiRepository = GeminiRepository()
+    private val database = androidx.room.Room.databaseBuilder(
+        application,
+        com.example.data.database.AppDatabase::class.java, "heartconnect-db"
+    ).build()
+    private val logRepository = com.example.data.repository.LogRepository(database.dailyLogDao())
+
     private val masterKey = MasterKey.Builder(application).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(); private val sharedPrefs = EncryptedSharedPreferences.create(application, "heart_connect_prefs_secure", masterKey, EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV, EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM)
 
     private val _userProfile = MutableStateFlow<Profile?>(null)
@@ -209,23 +215,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val aboutMe = sharedPrefs.getString("profile_about", "Looking for others going through the same thing.") ?: "Looking for others going through the same thing."
         val journeyPhase = sharedPrefs.getString("profile_journey", "Pre-transplant") ?: "Pre-transplant"
         val isAvailableForMentorship = sharedPrefs.getBoolean("profile_mentorship", false)
-        val dailyLogsStr = sharedPrefs.getString("profile_daily_logs", "") ?: ""
-        val dailyLogs = if (dailyLogsStr.isNotBlank()) {
-            dailyLogsStr.split(";;;").mapNotNull { logStr ->
-                val parts = logStr.split("|||")
-                if (parts.size == 5) {
-                    com.example.data.model.DailyLog(
-                        id = parts[0],
-                        timestamp = parts[1].toLongOrNull() ?: 0L,
-                        mood = parts[2].toIntOrNull() ?: 3,
-                        symptoms = parts[3],
-                        notes = parts[4]
-                    )
-                } else null
-            }
-        } else emptyList()
+        _userProfile.value = Profile(id = "me", name = name, age = age, location = location, medicalHistory = medicalHistory, aboutMe = aboutMe, journeyPhase = journeyPhase, isAvailableForMentorship = isAvailableForMentorship, dailyLogs = emptyList(), badges = getBadgesForProfile(isAvailableForMentorship, 0, journeyPhase))
 
-        _userProfile.value = Profile(id = "me", name = name, age = age, location = location, medicalHistory = medicalHistory, aboutMe = aboutMe, journeyPhase = journeyPhase, isAvailableForMentorship = isAvailableForMentorship, dailyLogs = dailyLogs, badges = getBadgesForProfile(isAvailableForMentorship, dailyLogs.size, journeyPhase))
+        viewModelScope.launch {
+            logRepository.allLogs.collect { logs ->
+                val current = _userProfile.value
+                if (current != null) {
+                    _userProfile.value = current.copy(
+                        dailyLogs = logs,
+                        badges = getBadgesForProfile(current.isAvailableForMentorship, logs.size, current.journeyPhase)
+                    )
+                }
+            }
+        }
         
         // Initial secure seed messages to make the interface feel active
         _privateMessages.value = mapOf(
@@ -415,22 +417,29 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
         fun backupLogsSecurely() {
-        val currentLogs = _userProfile.value?.dailyLogs ?: emptyList()
-        val logsStr = currentLogs.joinToString(";;;") { "${it.id}|||${it.timestamp}|||${it.mood}|||${it.symptoms}|||${it.notes}" }
-        secureStorageRepository.saveEncryptedFile("daily_logs_backup.enc", logsStr)
+        viewModelScope.launch {
+            val currentLogs = _userProfile.value?.dailyLogs ?: emptyList()
+            val logsStr = currentLogs.joinToString(";;;") { "${it.id}|||${it.timestamp}|||${it.mood}|||${it.symptoms}|||${it.notes}" }
+            secureStorageRepository.saveEncryptedFile("daily_logs_backup.enc", logsStr)
+            _notificationEvent.emit("Logs backed up securely.")
+        }
     }
 
     fun restoreLogsSecurely() {
-        val logsStr = secureStorageRepository.readEncryptedFile("daily_logs_backup.enc")
-        if (logsStr != null && logsStr.isNotBlank()) {
-            val dailyLogs = logsStr.split(";;;").mapNotNull { logStr ->
-                val parts = logStr.split("|||")
-                if (parts.size == 5) {
-                    com.example.data.model.DailyLog(parts[0], parts[1].toLong(), parts[2].toInt(), parts[3], parts[4])
-                } else null
+        viewModelScope.launch {
+            val logsStr = secureStorageRepository.readEncryptedFile("daily_logs_backup.enc")
+            if (logsStr != null && logsStr.isNotBlank()) {
+                val dailyLogs = logsStr.split(";;;").mapNotNull { logStr ->
+                    val parts = logStr.split("|||")
+                    if (parts.size == 5) {
+                        com.example.data.model.DailyLog(parts[0], parts[1].toLong(), parts[2].toInt(), parts[3], parts[4])
+                    } else null
+                }
+                logRepository.insertLogs(dailyLogs)
+                _notificationEvent.emit("Logs restored successfully.")
+            } else {
+                _notificationEvent.emit("No backup found or backup empty.")
             }
-            _userProfile.value = _userProfile.value?.copy(dailyLogs = dailyLogs)
-            sharedPrefs.edit().putString("profile_daily_logs", logsStr).apply()
         }
     }
 
@@ -477,8 +486,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun deleteDailyLog(id: String) {
+        viewModelScope.launch {
+            logRepository.deleteLogById(id)
+            _notificationEvent.emit("Daily log deleted.")
+        }
+    }
+
     fun addDailyLog(mood: Int, symptoms: String, notes: String) {
-        val currentProfile = _userProfile.value ?: return
         val newLog = com.example.data.model.DailyLog(
             id = "log_${System.currentTimeMillis()}",
             timestamp = System.currentTimeMillis(),
@@ -486,14 +501,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             symptoms = symptoms.replace("|||", "").replace(";;;", ""),
             notes = notes.replace("|||", "").replace(";;;", "")
         )
-        val newLogs = currentProfile.dailyLogs.toMutableList().apply { add(0, newLog) }
-        
-        val logsStr = newLogs.joinToString(";;;") { log ->
-            "${log.id}|||${log.timestamp}|||${log.mood}|||${log.symptoms}|||${log.notes}"
+        viewModelScope.launch {
+            logRepository.insertLog(newLog)
+            _notificationEvent.emit("Daily log saved successfully.")
         }
-        
-        sharedPrefs.edit().putString("profile_daily_logs", logsStr).apply()
-        _userProfile.value = currentProfile.copy(dailyLogs = newLogs, badges = getBadgesForProfile(currentProfile.isAvailableForMentorship, newLogs.size, currentProfile.journeyPhase))
     }
 
     fun sendMessageToCounselor(message: String) {
