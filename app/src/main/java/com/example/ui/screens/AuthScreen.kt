@@ -39,17 +39,23 @@ fun AuthScreen(onSignInSuccess: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(48.dp))
             
+            // This button performs NO authentication: it calls
+            // onSignInSuccess directly. It used to be labeled "Sign in with
+            // Google" with a footer claiming "Data is secured via Firebase
+            // Auth" — neither was true (no FirebaseAuth or Credential
+            // Manager code exists in the app). It is labeled as the demo
+            // entry it actually is until real sign-in is implemented.
             Button(
                 onClick = onSignInSuccess,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Text("Sign in with Google", style = MaterialTheme.typography.titleMedium)
+                Text("Continue to Demo", style = MaterialTheme.typography.titleMedium)
             }
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                "By signing in, you agree to our privacy policy and terms. Data is secured via Firebase Auth.",
+                "Demo build: Continue enters a local demo without an account. No sign-in or Firebase Auth is used in this build.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

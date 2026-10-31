@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Bookmark
@@ -26,8 +25,7 @@ import com.example.viewmodel.AppViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EducationalScreen(
-    viewModel: AppViewModel,
-    onBack: () -> Unit
+    viewModel: AppViewModel
 ) {
     val contents by viewModel.educationalContent.collectAsState()
     val savedContents by viewModel.savedEducationalContent.collectAsState()

@@ -154,47 +154,39 @@ fun AppNavigation(viewModel: AppViewModel = viewModel()) {
                 }
                 composable("counseling") {
                     AICounselingScreen(
-                        viewModel = viewModel,
-                        onBack = { navController.popBackStack() }
+                        viewModel = viewModel
                     )
                 }
                 composable("community") {
                     CommunityScreen(
                         viewModel = viewModel,
-                        onBack = { navController.popBackStack() },
                         onNavigateToGroupChat = { groupId -> navController.navigate("group_chat/$groupId") }
                     )
                 }
                 composable("profile") {
                     ProfileScreen(
-                        viewModel = viewModel,
-                        onBack = { navController.popBackStack() }
+                        viewModel = viewModel
                     )
                 }
                 composable("education") {
                     EducationalScreen(
-                        viewModel = viewModel,
-                        onBack = { navController.popBackStack() }
+                        viewModel = viewModel
                     )
                 }
                 
                 composable("metrics") {
-                    MetricsScreen(
-                        onBack = { navController.popBackStack() }
-                    )
+                    MetricsScreen()
                 }
                 composable("favorites") {
                     FavoritesScreen(
-                        viewModel = viewModel,
-                        onBack = { navController.popBackStack() }
+                        viewModel = viewModel
                     )
                 }
                 composable("private_chat/{peerId}") { backStackEntry ->
                     val peerId = backStackEntry.arguments?.getString("peerId") ?: ""
                     PrivateChatScreen(
                         viewModel = viewModel,
-                        peerId = peerId,
-                        onBack = { navController.popBackStack() }
+                        peerId = peerId
                     )
                 }
                 composable("group_chat/{groupId}") { backStackEntry ->

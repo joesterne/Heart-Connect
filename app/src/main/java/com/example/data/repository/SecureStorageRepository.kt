@@ -50,7 +50,7 @@ class SecureStorageRepository(private val context: Context) {
                 String(bytes, Charsets.UTF_8)
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            android.util.Log.e("SecureStorage", "Secure storage operation failed", e)
             null
         }
     }

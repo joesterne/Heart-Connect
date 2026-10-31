@@ -28,20 +28,22 @@ class AudioRecorderHelper(private val context: Context) {
     }
 
     fun stopRecording(): String? {
+        // The recorder is released in finally: if stop() throws (e.g. Stop
+        // tapped too quickly), the old catch returned null WITHOUT releasing
+        // it — leaking the recorder and potentially holding the microphone,
+        // and the next startRecording() overwrote the reference for good.
         try {
-            mediaRecorder?.apply {
-                stop()
-                release()
-            }
-            mediaRecorder = null
-            
+            mediaRecorder?.stop()
             return outputFile?.let { file ->
                 val bytes = file.readBytes()
                 Base64.encodeToString(bytes, Base64.NO_WRAP)
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            android.util.Log.e("AudioRecorderHelper", "stopRecording failed", e)
             return null
+        } finally {
+            try { mediaRecorder?.release() } catch (_: Exception) {}
+            mediaRecorder = null
         }
     }
 }

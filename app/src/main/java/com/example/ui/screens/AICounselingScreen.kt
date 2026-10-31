@@ -3,12 +3,10 @@ package com.example.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,7 +18,7 @@ import com.example.data.repository.Content
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AICounselingScreen(viewModel: AppViewModel, onBack: () -> Unit) {
+fun AICounselingScreen(viewModel: AppViewModel) {
     val chatHistory by viewModel.chatHistory.collectAsState()
     val isLoading by viewModel.isCounselingLoading.collectAsState()
     var message by remember { mutableStateOf("") }

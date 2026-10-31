@@ -16,19 +16,9 @@ class FirestoreRepository(private val context: Context) {
             }
             FirebaseFirestore.getInstance()
         } catch (e: Exception) {
-            e.printStackTrace()
+            android.util.Log.e("FirestoreRepository", "Firestore unavailable; app will use local fallback data", e)
             null
         }
-    }
-
-    suspend fun saveProfile(profile: Profile) {
-        val database = db ?: throw IllegalStateException("Firestore is not available")
-        database.collection("profiles").document(profile.id).set(profile).await()
-    }
-
-    suspend fun getProfile(userId: String): Profile? {
-        val database = db ?: throw IllegalStateException("Firestore is not available")
-        return database.collection("profiles").document(userId).get().await().toObject(Profile::class.java)
     }
 
     suspend fun getProfiles(): List<Profile> {

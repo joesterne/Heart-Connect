@@ -6,13 +6,11 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.ResponseBody
 import retrofit2.Retrofit
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.POST
 import retrofit2.http.Query
-import retrofit2.http.Streaming
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -105,7 +103,13 @@ object RetrofitClient {
 }
 
 class GeminiRepository {
-    suspend fun getCounselingResponse(prompt: String, conversationHistory: List<Content>, customSystemInstruction: String? = null): String = withContext(Dispatchers.IO) {
+    // Failures THROW. This used to catch every exception and return strings
+    // like "Error connecting to counselor: ..." as if they were content —
+    // callers then displayed them as the counselor's/moderator's/peer's
+    // reply, and the audio flow saved one as a real log's notes. (The
+    // `prompt` parameter was also dead: the request is built from
+    // conversationHistory alone, so it is gone.)
+    suspend fun getCounselingResponse(conversationHistory: List<Content>, customSystemInstruction: String? = null): String = withContext(Dispatchers.IO) {
         val apiKey = BuildConfig.GEMINI_API_KEY
         val model = "gemini-1.5-flash"
         val instructionText = customSystemInstruction ?: "You are an empathetic, highly trained medical counselor for patients on the heart transplant waiting list. Be supportive, informative, and compassionate."
@@ -113,12 +117,8 @@ class GeminiRepository {
             contents = conversationHistory, // The conversationHistory already includes the latest prompt
             systemInstruction = Content(parts = listOf(Part(text = instructionText)))
         )
-        try {
-            val response = RetrofitClient.service.generateContent(model, apiKey, request)
-            response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: "No response from counselor."
-        } catch (e: Exception) {
-            "Error connecting to counselor: ${e.localizedMessage}"
-        }
+        val response = RetrofitClient.service.generateContent(model, apiKey, request)
+        response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: "No response from counselor."
     }
 
     suspend fun transcribeAudio(base64Audio: String): String = withContext(Dispatchers.IO) {
@@ -130,12 +130,8 @@ class GeminiRepository {
                 Part(inlineData = InlineData(mimeType = "audio/mp4", data = base64Audio))
             ), role = "user"))
         )
-        try {
-            val response = RetrofitClient.service.generateContent(model, apiKey, request)
-            response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: "Could not transcribe audio."
-        } catch (e: Exception) {
-            "Error transcribing audio: ${e.localizedMessage}"
-        }
+        val response = RetrofitClient.service.generateContent(model, apiKey, request)
+        response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: "Could not transcribe audio."
     }
 
     suspend fun searchMedicalResources(query: String): String = withContext(Dispatchers.IO) {
@@ -145,11 +141,7 @@ class GeminiRepository {
             contents = listOf(Content(parts = listOf(Part(text = "Search for the latest up-to-date resources and advice for heart transplant waitlist patients regarding: $query")), role = "user")),
             tools = listOf(Tool(googleSearch = JsonObject(emptyMap())))
         )
-        try {
-            val response = RetrofitClient.service.generateContent(model, apiKey, request)
-            response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: "No resources found."
-        } catch (e: Exception) {
-            "Error searching resources: ${e.localizedMessage}"
-        }
+        val response = RetrofitClient.service.generateContent(model, apiKey, request)
+        response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: "No resources found."
     }
 }

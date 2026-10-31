@@ -6,10 +6,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.*
@@ -39,7 +37,6 @@ import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 
 import androidx.compose.material.icons.filled.MedicalServices
-import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -48,7 +45,6 @@ import androidx.compose.material.icons.filled.VisibilityOff
 @Composable
 fun CommunityScreen(
     viewModel: AppViewModel,
-    onBack: () -> Unit,
     onNavigateToGroupChat: (String) -> Unit = {}
 ) {
     val groups by viewModel.supportGroups.collectAsState()
@@ -770,7 +766,7 @@ fun ScheduledSessionCard(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text(if (session.isRsvped) "RSVP Confirmed" else "RSVP & Remind", fontWeight = FontWeight.Bold)
+                    Text(if (session.isRsvped) "RSVP Confirmed" else "RSVP", fontWeight = FontWeight.Bold)
                 }
 }
 }

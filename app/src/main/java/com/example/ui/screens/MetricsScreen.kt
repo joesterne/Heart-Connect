@@ -5,7 +5,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -20,17 +19,17 @@ import com.patrykandpatrick.vico.compose.chart.Chart
 import com.patrykandpatrick.vico.compose.chart.line.lineChart
 import com.patrykandpatrick.vico.compose.chart.column.columnChart
 import com.patrykandpatrick.vico.core.entry.entryModelOf
-import com.patrykandpatrick.vico.core.entry.ChartEntryModelProducer
-import com.patrykandpatrick.vico.core.entry.FloatEntry
 import com.patrykandpatrick.vico.compose.style.ProvideChartStyle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MetricsScreen(
-    onBack: () -> Unit
-) {
+fun MetricsScreen() {
     val openDrawer = LocalOpenDrawer.current
     
+    // SAMPLE DATA: these charts are hardcoded constants, not the user's
+    // recorded metrics — nothing here reads logs, Health Connect, or a
+    // sensor. They are labeled as sample data in the UI below until the
+    // charts are wired to real data.
     // Heart Rate data (BPM)
     val heartRateModel = remember { entryModelOf(72f, 75f, 73f, 78f, 71f, 69f, 74f) }
     
@@ -43,7 +42,7 @@ fun MetricsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Health Metrics Dashboard") },
+                title = { Text("Health Metrics (Sample Data)") },
                 navigationIcon = {
                     IconButton(onClick = openDrawer) {
                         Icon(Icons.Default.Menu, contentDescription = "Menu")

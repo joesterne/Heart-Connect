@@ -11,7 +11,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Info
@@ -44,7 +43,6 @@ import android.content.pm.PackageManager
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Stop
 import com.example.util.AudioRecorderHelper
-import kotlinx.coroutines.launch
 
 import com.example.viewmodel.AppViewModel
 import com.patrykandpatrick.vico.compose.chart.Chart
@@ -56,7 +54,7 @@ import com.patrykandpatrick.vico.core.entry.entryModelOf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(viewModel: AppViewModel, onBack: () -> Unit) {
+fun ProfileScreen(viewModel: AppViewModel) {
     val userProfile by viewModel.userProfile.collectAsState()
     val context = LocalContext.current
 
@@ -71,10 +69,23 @@ fun ProfileScreen(viewModel: AppViewModel, onBack: () -> Unit) {
     var isAvailableForMentorship by remember { mutableStateOf(false) }
 
     val journeyPhases = listOf("Pre-transplant", "Waitlisted", "Post-transplant recovery", "Long-term survivor", "Caregiver")
+
+    // Mentorship is only offered in the two post-transplant phases. The
+    // reset used to be a bare assignment in the composable body (state
+    // written during composition — recomposition-loop risk, and it silently
+    // discarded the user's toggle); it is an effect keyed on the phase now.
+    LaunchedEffect(journeyPhase) {
+        if (journeyPhase != "Post-transplant recovery" && journeyPhase != "Long-term survivor") {
+            isAvailableForMentorship = false
+        }
+    }
     var expandedPhaseDropdown by remember { mutableStateOf(false) }
 
-    // Initialize form values from current profile state
-    LaunchedEffect(userProfile, isEditMode) {
+    // Seed the form ONLY when entering edit mode. This was keyed on
+    // (userProfile, isEditMode), and _userProfile re-emits on every Room
+    // log change — so any re-emission mid-edit silently overwrote the
+    // user's in-progress edits with the stored values.
+    LaunchedEffect(isEditMode) {
         userProfile?.let {
             name = it.name
             ageString = it.age.toString()
@@ -215,8 +226,6 @@ fun ProfileScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             onCheckedChange = { isAvailableForMentorship = it }
                         )
                     }
-            } else {
-                isAvailableForMentorship = false
             }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -407,7 +416,6 @@ fun ProfileScreen(viewModel: AppViewModel, onBack: () -> Unit) {
 @Composable
 fun DailyTrackerSection(viewModel: AppViewModel, userProfile: com.example.data.model.Profile?) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     var isAddingLog by remember { mutableStateOf(false) }
     var isRecording by remember { mutableStateOf(false) }
     var audioRecorder by remember { mutableStateOf<AudioRecorderHelper?>(null) }

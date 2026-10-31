@@ -356,7 +356,7 @@ fun ProfileCard(profile: Profile, onClick: () -> Unit) {
             Spacer(Modifier.width(8.dp))
             Icon(
                 imageVector = Icons.Default.Lock,
-                contentDescription = "E2E Secure",
+                contentDescription = "Community member",
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp)
             )

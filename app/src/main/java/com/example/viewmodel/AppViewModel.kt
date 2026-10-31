@@ -241,6 +241,34 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             _isGlobalLoading.value = true
+            // Educational content and the seeded Q&A are local static data,
+            // but they used to be assigned ONLY inside the catch block below
+            // — so the Education tab was permanently empty whenever the
+            // backend actually worked. They are set unconditionally now.
+                _qaInquiries.value = listOf(
+                com.example.data.model.QAInquiry(
+                    id = "qa_1",
+                    authorId = "1",
+                    authorName = "Sarah",
+                    question = "What are the common side effects of the immunosuppressants initially?",
+                    timestamp = System.currentTimeMillis() - 86400000,
+                    answers = listOf(
+                        com.example.data.model.QAAnswer(
+                            id = "ans_1",
+                            authorId = "2",
+                            authorName = "Michael",
+                            content = "I experienced some mild tremors and headaches, but they faded after a few weeks as my body adjusted.",
+                            timestamp = System.currentTimeMillis() - 80000000,
+                            isVerified = true
+                        )
+                    )
+                )
+            )
+                            _educationalContent.value = listOf(
+                com.example.data.model.EducationalContent("1", "Understanding the Waitlist", "A guide to how the transplant waitlist works and how to prepare.", "Article", "5 min read"),
+                com.example.data.model.EducationalContent("2", "Nutrition Post-Transplant", "Key dietary changes to support your new organ.", "Video", "12 min watch"),
+                com.example.data.model.EducationalContent("3", "Mental Health on the Journey", "Tips for managing anxiety and staying positive.", "Article", "8 min read")
+            )
             try {
                 val profilesDeferred = async { firestoreRepository.getProfiles() }
                 val groupsDeferred = async { firestoreRepository.getGroups() }
@@ -294,31 +322,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     com.example.data.model.CommunityPost("1", "1", "Sarah", "Pre-transplant", "Just got my 3-month checkup, everything looks stable!", System.currentTimeMillis() - 86400000),
                     com.example.data.model.CommunityPost("2", "2", "Michael", "Post-transplant recovery", "Has anyone tried the new physical therapy routine recommended by Dr. Aris?", System.currentTimeMillis() - 172800000)
                 )
-                _qaInquiries.value = listOf(
-                    com.example.data.model.QAInquiry(
-                        id = "qa_1",
-                        authorId = "1",
-                        authorName = "Sarah",
-                        question = "What are the common side effects of the immunosuppressants initially?",
-                        timestamp = System.currentTimeMillis() - 86400000,
-                        answers = listOf(
-                            com.example.data.model.QAAnswer(
-                                id = "ans_1",
-                                authorId = "2",
-                                authorName = "Michael",
-                                content = "I experienced some mild tremors and headaches, but they faded after a few weeks as my body adjusted.",
-                                timestamp = System.currentTimeMillis() - 80000000,
-                                isVerified = true
-                            )
-                        )
-                    )
-                )
-                kotlinx.coroutines.delay(1000)
-                _educationalContent.value = listOf(
-                    com.example.data.model.EducationalContent("1", "Understanding the Waitlist", "A guide to how the transplant waitlist works and how to prepare.", "Article", "5 min read"),
-                    com.example.data.model.EducationalContent("2", "Nutrition Post-Transplant", "Key dietary changes to support your new organ.", "Video", "12 min watch"),
-                    com.example.data.model.EducationalContent("3", "Mental Health on the Journey", "Tips for managing anxiety and staying positive.", "Article", "8 min read")
-                )
+kotlinx.coroutines.delay(1000)
             } finally {
                 _isGlobalLoading.value = false
             }
@@ -346,10 +350,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 // Ignore fallback for mock
             }
-            
-            // Simulate someone commenting on the user's shared experience after a short delay
-            kotlinx.coroutines.delay(5000)
-            _notificationEvent.emit("New comment on your post from a community member!")
+
+            // A simulated "New comment on your post!" notification used to
+            // fire 5 seconds after posting although no comment was ever
+            // created. Removed: notifications only fire for real events.
         }
     }
 
@@ -431,8 +435,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             if (logsStr != null && logsStr.isNotBlank()) {
                 val dailyLogs = logsStr.split(";;;").mapNotNull { logStr ->
                     val parts = logStr.split("|||")
-                    if (parts.size == 5) {
-                        com.example.data.model.DailyLog(parts[0], parts[1].toLong(), parts[2].toInt(), parts[3], parts[4])
+                    val timestamp = parts.getOrNull(1)?.toLongOrNull()
+                    val mood = parts.getOrNull(2)?.toIntOrNull()
+                    if (parts.size == 5 && timestamp != null && mood != null) {
+                        com.example.data.model.DailyLog(parts[0], timestamp, mood, parts[3], parts[4])
                     } else null
                 }
                 logRepository.insertLogs(dailyLogs)
@@ -456,13 +462,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             apply()
         }
         _userProfile.value = Profile(id = "me", name = name, age = age, location = location, medicalHistory = medicalHistory, aboutMe = aboutMe, journeyPhase = journeyPhase, isAvailableForMentorship = isAvailableForMentorship, dailyLogs = currentLogs, badges = getBadgesForProfile(isAvailableForMentorship, currentLogs.size, journeyPhase))
-        
-        viewModelScope.launch {
 
-            // Simulate finding a new match after updating the profile
-            kotlinx.coroutines.delay(3000)
-            _notificationEvent.emit("A new peer match was found based on your updated profile!")
-        }
+        // A simulated "new peer match" toast used to fire 3 seconds after
+        // every profile save although no matching is performed. Removed.
     }
 
     private val _isTranscribing = MutableStateFlow(false)
@@ -471,7 +473,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun transcribeAndAddAudioLog(base64Audio: String, mood: Int, symptoms: String) {
         viewModelScope.launch {
             _isTranscribing.value = true
-            val transcription = geminiRepository.transcribeAudio(base64Audio)
+            val transcription = try {
+                geminiRepository.transcribeAudio(base64Audio)
+            } catch (e: Exception) {
+                // The repository used to return "Error transcribing audio: ..."
+                // as if it were a transcript, and that string was saved as a
+                // real log's notes with a success toast. Fail honestly now.
+                _isTranscribing.value = false
+                _notificationEvent.emit("Audio transcription failed. Please try again.")
+                return@launch
+            }
             val parts = transcription.split("|||")
             if (parts.size >= 3) {
                 val extractedMood = parts[0].trim().toIntOrNull() ?: mood
@@ -514,12 +525,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _isCounselingLoading.value = true
 
         viewModelScope.launch {
-
-            val response = geminiRepository.getCounselingResponse(message, newHistory)
-            val updatedHistory = _chatHistory.value.toMutableList()
-            updatedHistory.add(Content(parts = listOf(Part(text = response)), role = "model"))
-            _chatHistory.value = updatedHistory
-            _isCounselingLoading.value = false
+            try {
+                val response = geminiRepository.getCounselingResponse(newHistory)
+                val updatedHistory = _chatHistory.value.toMutableList()
+                updatedHistory.add(Content(parts = listOf(Part(text = response)), role = "model"))
+                _chatHistory.value = updatedHistory
+            } catch (e: Exception) {
+                _notificationEvent.emit("Could not reach the counselor service. Please try again.")
+            } finally {
+                _isCounselingLoading.value = false
+            }
         }
     }
 
@@ -527,8 +542,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _isSearching.value = true
         viewModelScope.launch {
 
-            val result = geminiRepository.searchMedicalResources(query)
-            _searchResults.value = result
+            try {
+                _searchResults.value = geminiRepository.searchMedicalResources(query)
+            } catch (e: Exception) {
+                _searchResults.value = "Search is unavailable right now. Please try again."
+            }
             _isSearching.value = false
         }
     }
@@ -571,7 +589,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
             val prompt = "Respond to this message: '$text'"
             val systemInstructions = """
-                You are simulating a secure, private peer conversation between heart transplant waiting list patients.
+                You are playing the role of a peer in an AI-simulated conversation between heart transplant waiting list patients. The app discloses to the user that you are an AI persona, not a real person, and that this chat is not encrypted.
                 You are ${peerProfile.name}, age ${peerProfile.age}, located in ${peerProfile.location}.
                 Your medical history and status is: ${peerProfile.medicalHistory}.
                 Be supportive, empathetic, realistic, and talk like a peer patient. Keep your response relatively short, friendly, and human.
@@ -579,7 +597,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
             // Request dynamic reply
             val replyText = try {
-                geminiRepository.getCounselingResponse(prompt, geminiHistory, systemInstructions)
+                geminiRepository.getCounselingResponse(geminiHistory, systemInstructions)
             } catch (e: Exception) {
                 "Hey! I'm glad we are connected. This journey is tough but we have each other."
             }
@@ -637,9 +655,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 _isSendingGroupMessage.value = true
                 val prompt = "Patient ($displayName) says in the group '${group.name}': '$text'"
                 val systemInstructions = """
-                    You are ${group.moderatedBy}, ${group.moderatorTitle}, serving as the official clinical moderator for the support group '${group.name}'.
+                    You are the AI assistant facilitating the peer support group '${group.name}'. The group lists a moderator persona (${group.moderatedBy}, ${group.moderatorTitle}) for framing, but you must NOT claim to be that person, a clinician, or a medical professional, and must not present yourself as providing clinical oversight.
                     The group description is: '${group.description}'.
-                    A member posted a message (either anonymously or identified). Provide a compassionate, clinically sound, encouraging, and supportive response as the group moderator.
+                    A member posted a message (either anonymously or identified). Provide a compassionate, encouraging, and supportive response as the group's AI assistant.
                     Keep it professional, empathetic, concise (2-4 sentences), and remind members that group discussions supplement but do not replace direct 1-on-1 advice from their primary transplant care team.
                 """.trimIndent()
 
@@ -651,7 +669,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 }
 
                 val modResponseText = try {
-                    geminiRepository.getCounselingResponse(prompt, groupHistory, systemInstructions)
+                    geminiRepository.getCounselingResponse(groupHistory, systemInstructions)
                 } catch (e: Exception) {
                     "Thank you for sharing with the group. Please remember to reach out to your clinical care coordinator if you experience any acute changes in symptoms."
                 }
@@ -660,10 +678,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     id = "g_msg_mod_${System.currentTimeMillis()}",
                     groupId = groupId,
                     senderId = "mod_${group.id}",
-                    senderName = group.moderatedBy,
+                    senderName = "Group AI Assistant",
                     isAnonymous = false,
                     isModerator = true,
-                    moderatorBadge = group.moderatorTitle,
+                    moderatorBadge = "AI Assistant",
                     text = modResponseText,
                     timestamp = System.currentTimeMillis()
                 )
@@ -690,7 +708,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
             viewModelScope.launch {
                 if (newIsRsvped) {
-                    _notificationEvent.emit("RSVP confirmed! Reminder set for ${session.title}.")
+                    _notificationEvent.emit("RSVP confirmed for ${session.title}.")
                 } else {
                     _notificationEvent.emit("RSVP cancelled for ${session.title}.")
                 }
